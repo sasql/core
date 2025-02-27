@@ -222,7 +222,6 @@ export function validatePostgresQuery(sql: string): {
  * Format error messages with line context for display
  */
 export function formatErrorMessages(
-    sql: string,
     { enhancedErrors }: ReturnType<typeof validatePostgresQuery>
 ): string[] {
     return enhancedErrors.map((error) => {

@@ -12,7 +12,7 @@ export function formatAndValidatePostgresQuery(sql: string): {
 } {
     const validation = validatePostgresQuery(sql);
     const formatted = validation.valid ? formatPostgresQuery(sql) : sql;
-    const formattedErrors = formatErrorMessages(sql, validation);
+    const formattedErrors = formatErrorMessages(validation);
 
     return {
         formatted,

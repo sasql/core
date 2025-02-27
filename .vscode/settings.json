@@ -22,8 +22,42 @@
         "textMateRules": [
             {
                 "scope": [
+                    "string.quoted.single.sql"
+                ],
+                "settings": {
+                    "foreground": "#ce916a",
+                }
+            },
+            {
+                "scope": [
+                    "support.function.expression.sql"
+                ],
+                "settings": {
+                    "foreground": "#569cd6",
+                    "fontStyle": "bold"
+                }
+            },
+            {
+                "scope": [
+                    "constant.other.database-name.sql"
+                ],
+                "settings": {
+                    "foreground": "#4fc1ff",
+                }
+            },
+            {
+                "scope": [
+                    "constant.other.table-name.sql"
+                ],
+                "settings": {
+                    "foreground": "#9cdcfe",
+                }
+            },
+            {
+                "scope": [
                     "keyword.other",
-                    "support.function.aggregate.sql"
+                    "support.function.aggregate.sql",
+                    "support.function.string.sql",
                 ],
                 "settings": {
                     "foreground": "#db7c74",
@@ -50,29 +84,13 @@
             },
             {
                 "scope": [
-                    "string.quoted.single.sql"
-                ],
-                "settings": {
-                    "foreground": "#e4e487"
-                }
-            },
-            {
-                "scope": [
                     "keyword.operator.comparison.sql",
                     "keyword.operator.star.sql"
                 ],
                 "settings": {
                     "foreground": "#d6aaaa"
                 }
-            },
-            {
-                "scope": [
-                    "comment.block.source.sql"
-                ],
-                "settings": {
-                    "foreground": "#FF0000"
-                }
             }
         ]
-    },
+    }
 }
