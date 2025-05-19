@@ -1,0 +1,66 @@
+{
+  "name": "sasql",
+  "displayName": "sasql",
+  "description": "Provides editor support for sasql projects.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "sasql",
+        "aliases": [
+          "sasql",
+          "SASQL"
+        ],
+        "extensions": [
+          ".sasql"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "sasql",
+        "scopeName": "source.sasql",
+        "path": "./syntaxes/sasql.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "sasql.helloWorld",
+        "title": "Hello World"
+      }
+    ]
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.9",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.100.0",
+    "@typescript-eslint/eslint-plugin": "^8.10.0",
+    "@typescript-eslint/parser": "^8.7.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.13.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "glob": "^11.0.2"
+  }
+}

@@ -1,96 +1,34 @@
 {
-    "workbench.iconTheme": "material-icon-theme",
-    "material-icon-theme.activeIconPack": "none",
-    "prettier.configPath": "./.prettierrc",
-    "prettier.enable": true,
-    "prettier.ignorePath": "./.prettierignore",
-    "prettier.prettierPath": "./node_modules/prettier",
-    "prettier.requireConfig": true,
-    "references.preferredLocation": "peek",
-    "search.followSymlinks": true,
-    "typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": false,
-    "typescript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
-    "typescript.format.insertSpaceBeforeFunctionParenthesis": false,
-    "typescript.format.semicolons": "insert",
-    "typescript.preferences.quoteStyle": "single",
-    "typescript.suggest.completeFunctionCalls": false,
-    "typescript.suggest.completeJSDocs": true,
-    "typescript.tsdk": "node_modules/typescript/lib",
-    "editor.formatOnPaste": true,
-    "editor.formatOnSave": true,
-    "editor.tokenColorCustomizations": {
-        "textMateRules": [
-            {
-                "scope": [
-                    "string.quoted.single.sql"
-                ],
-                "settings": {
-                    "foreground": "#ce916a",
-                }
-            },
-            {
-                "scope": [
-                    "support.function.expression.sql"
-                ],
-                "settings": {
-                    "foreground": "#569cd6",
-                    "fontStyle": "bold"
-                }
-            },
-            {
-                "scope": [
-                    "constant.other.database-name.sql"
-                ],
-                "settings": {
-                    "foreground": "#4fc1ff",
-                }
-            },
-            {
-                "scope": [
-                    "constant.other.table-name.sql"
-                ],
-                "settings": {
-                    "foreground": "#9cdcfe",
-                }
-            },
-            {
-                "scope": [
-                    "keyword.other",
-                    "support.function.aggregate.sql",
-                    "support.function.string.sql",
-                ],
-                "settings": {
-                    "foreground": "#db7c74",
-                    "fontStyle": "bold"
-                }
-            },
-            {
-                "scope": [
-                    "source.sql",
-                    "string.quoted.double.sql"
-                ],
-                "settings": {
-                    "foreground": "#7dc9f1"
-                }
-            },
-            {
-                "scope": [
-                    "comment.line.double-dash.sql",
-                    "constant.numeric.sql"
-                ],
-                "settings": {
-                    "foreground": "#7ccc5c"
-                }
-            },
-            {
-                "scope": [
-                    "keyword.operator.comparison.sql",
-                    "keyword.operator.star.sql"
-                ],
-                "settings": {
-                    "foreground": "#d6aaaa"
-                }
-            }
-        ]
-    }
+	//
+	// Editor
+	//
+	"editor.formatOnPaste": true,
+	"editor.formatOnSave": true,
+	"files.exclude": {
+		"out": false
+	},
+	"search.exclude": {
+		"out": true
+	},
+	"typescript.tsc.autoDetect": "off", // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
+	//// Icons
+	"workbench.iconTheme": "material-icon-theme",
+	//// Prettier
+	"prettier.enable": true,
+	"prettier.requireConfig": true,
+	"prettier.configPath": "./.prettierrc",
+	"prettier.ignorePath": "./.prettierignore",
+	"prettier.prettierPath": "./node_modules/prettier",
+	//
+	// Typescript
+	//
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": false,
+	"typescript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
+	"typescript.format.insertSpaceBeforeFunctionParenthesis": false,
+	"typescript.format.semicolons": "insert",
+	"typescript.preferences.quoteStyle": "single",
+	"typescript.suggest.completeFunctionCalls": false,
+	"typescript.suggest.completeJSDocs": true,
+	"typescript.tsserver.log": "terse",
 }

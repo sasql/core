@@ -1,21 +1,13 @@
 {
-  "name": "@sasql/core",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Alexander Porrello",
-  "type": "module",
-  "license": "MIT",
-  "description": "",
-  "dependencies": {},
-  "devDependencies": {
-    "@types/jest": "^29.5.14",
-    "@types/node": "^22.13.4",
-    "jest": "^29.7.0",
-    "prettier": "^3.5.1",
-    "ts-jest": "^29.2.5",
-    "typescript": "^5.7.3"
-  }
+    "name": "@sasql/lib",
+    "version": "1.0.0",
+    "description": "",
+    "main": "main.js",
+    "type": "module",
+    "scripts": {},
+    "author": "Alexander Porrello",
+    "dependencies": {},
+    "devDependencies": {
+        "prettier": "^3.3.3"
+    }
 }
