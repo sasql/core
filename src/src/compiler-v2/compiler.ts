@@ -9,14 +9,14 @@ import {
 import { dirname, join } from 'path';
 import { DiagnosticMessage } from '../compiler/diagnostic-message.js';
 import { tokenize } from './tokenizer.js';
-import { preParse } from './pre-parser.js';
+import { parse } from './parser.js';
 
 export declare interface SourceFile extends ParseResult {
     tokens: Token[];
     toEmit: string;
 }
 
-export function parseSourceFile(
+export function compile(
     srcPath: string,
     options: {
         ignoreWhitespace: boolean;
@@ -39,7 +39,7 @@ export function parseSourceFile(
     const tokens = tokenize(source, {
         tokenizeWhitespace: !(options.ignoreWhitespace || true)
     });
-    const parseResult = preParse(tokens, {
+    const parseResult = parse(tokens, {
         removeComments: options.removeComments ?? true
     });
 
@@ -151,5 +151,5 @@ function resolveImport(
         relativePath += '.sasql';
     }
 
-    return parseSourceFile(join(srcDir, relativePath), options, sys, directive);
+    return compile(join(srcDir, relativePath), options, sys, directive);
 }

@@ -1,39 +1,109 @@
-import { tokenize } from '../compiler/tokenizer.js';
+import { tokenize } from '../compiler-v2/tokenizer.js';
 import { mainSasql, subStmtSasql } from './example-sasql.spec.js';
 
-describe('Tokenizer test suite', () => {
-    test('It can parse a simple example sql', () => {
-        const tokens = tokenize(mainSasql);
+describe('Tokenizer v2 test suite', () => {
+    test('Can tokenize sasql that has an import and include.', () => {
+        const tokenized = tokenize(mainSasql, {
+            tokenizeWhitespace: false
+        });
 
-        expect(tokens.length).toEqual(7);
+        const expectedTokenVals = [
+            '@use',
+            "'./my_imported_select'",
+            'as',
+            'my_import',
+            ';',
+            'SELECT',
+            '*',
+            'FROM',
+            '(',
+            '@include',
+            'my_import',
+            '.',
+            'select_from_my_table',
+            ';',
+            ')',
+            'as',
+            'my_sub_stmt'
+        ];
 
-        const [nl1, use, nl2, comment, select, include, nl3] = tokens;
-
-        expect(nl1.text).toEqual(
-            mainSasql.substring(nl1.startIndex, nl1.endIndex)
-        );
-        expect(use.text).toEqual(
-            mainSasql.substring(use.startIndex, use.endIndex)
-        );
-        expect(nl2.text).toEqual(
-            mainSasql.substring(nl2.startIndex, nl2.endIndex)
-        );
-        expect(comment.text).toEqual(
-            mainSasql.substring(comment.startIndex, comment.endIndex)
-        );
-        expect(select.text).toEqual(
-            mainSasql.substring(select.startIndex, select.endIndex)
-        );
-        expect(include.text).toEqual(
-            mainSasql.substring(include.startIndex, include.endIndex)
-        );
-        expect(nl3.text).toEqual(
-            mainSasql.substring(nl3.startIndex, nl3.endIndex)
-        );
+        tokenized.forEach((t, i) => {
+            expect(t.text).toEqual(expectedTokenVals[i]);
+        });
     });
 
-    test('It can parse a function with a statement directive', () => {
-        const tokens = tokenize(subStmtSasql);
-        console.log(tokens);
+    test('Can tokenize sql that defines a stmt', () => {
+        const tokenized = tokenize(subStmtSasql, {
+            tokenizeWhitespace: false
+        });
+
+        const expectedTokenVals = [
+            '/**',
+            '*',
+            'This',
+            'is',
+            'the',
+            'overall',
+            'description',
+            'of',
+            'the',
+            'stmt',
+            '.',
+            '*',
+            '@param',
+            '{',
+            'string',
+            '}',
+            '$1',
+            '-',
+            'The',
+            'first',
+            'parameter',
+            '*',
+            '@param',
+            '{',
+            'string',
+            '|',
+            'number',
+            '}',
+            '$2',
+            '-',
+            'The',
+            'second',
+            'parameter',
+            '*/',
+            '@statement',
+            'select_from_my_table',
+            '{',
+            'SELECT',
+            '*',
+            'FROM',
+            'my_table',
+            'WHERE',
+            'column_a',
+            '=',
+            '$1',
+            'AND',
+            'column_b',
+            '=',
+            '$2',
+            '}'
+        ];
+
+        tokenized.forEach((t, i) => {
+            expect(t.text).toEqual(expectedTokenVals[i]);
+        });
+    });
+
+    test('Can parse comment line', () => {
+        const commentLn = /*sql*/ `
+            --comment line
+        `;
+
+        const tokenized = tokenize(commentLn, {
+            tokenizeWhitespace: false
+        });
+
+        expect(tokenized[0].text).toEqual('--comment line');
     });
 });

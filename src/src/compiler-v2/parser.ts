@@ -10,7 +10,7 @@ import {
     DocTag
 } from './types.js';
 
-export function preParse(
+export function parse(
     _tokens: Token[],
     options: {
         removeComments?: boolean;

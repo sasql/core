@@ -1,17 +1,43 @@
-import { compile } from '../compiler/compiler.js';
-import { parseSourceFile } from '../compiler/parser.js';
-import { mainSasql, subStmtSasql } from './example-sasql.spec.js';
+import { compile } from '../compiler-v2/compiler.js';
+import {
+    mainSasql,
+    subStmtSasql,
+    virtualMainDir
+} from './example-sasql.spec.js';
 
-describe('Compiler test suite', () => {
-    test('It can parse simple document.', () => {
-        const sourceFile = parseSourceFile(
-            mainSasql,
-            '/home/usr/git/my-project/src/main.sasql',
-            () => subStmtSasql
+describe('Compiler V2 test suite.', () => {
+    test('Can compile sasql', () => {
+        const validationResults = compile(
+            virtualMainDir,
+            {
+                ignoreWhitespace: true,
+                removeComments: true
+            },
+            {
+                readFile: () => subStmtSasql,
+                fileExists: () => true
+            },
+            undefined
         );
 
-        const output = compile(sourceFile);
+        console.log(validationResults);
+    });
 
-        console.log(output.emit);
+    test('Can compile sasql with @use and @include', () => {
+        const validationResults = compile(
+            virtualMainDir,
+            {
+                ignoreWhitespace: true,
+                removeComments: true
+            },
+            {
+                readFile: () => subStmtSasql,
+                fileExists: () => true
+            },
+            undefined,
+            mainSasql
+        );
+
+        console.log(validationResults.toEmit);
     });
 });
