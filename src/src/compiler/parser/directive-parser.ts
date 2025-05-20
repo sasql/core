@@ -1,6 +1,7 @@
 import { dirname, join } from 'path';
 import {
     ChunkType,
+    CommentBlock,
     IncludeDirective,
     StatementDirective,
     Token,
@@ -88,7 +89,10 @@ export function parseIncludeDirective(
     return include;
 }
 
-export function parseStatementDirective(token: Token): StatementDirective {
+export function parseStatementDirective(
+    token: Token,
+    docs?: CommentBlock
+): StatementDirective {
     const declaration = token.text.substring(0, token.text.indexOf('{')).trim();
 
     let name = declaration.substring(declaration.indexOf(' ')).trim();
@@ -104,6 +108,7 @@ export function parseStatementDirective(token: Token): StatementDirective {
         name,
         statement,
         startIndex: token.startIndex,
-        endIndex: token.endIndex
+        endIndex: token.endIndex,
+        docs
     };
 }

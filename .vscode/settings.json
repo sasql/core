@@ -31,4 +31,15 @@
 	"typescript.suggest.completeFunctionCalls": false,
 	"typescript.suggest.completeJSDocs": true,
 	"typescript.tsserver.log": "terse",
+	//
+	// SCHEMA
+	//
+	"json.schemas": [
+		{
+			"fileMatch": [
+				"**/tsconfig.json"
+			],
+			"url": "fart"
+		}
+	]
 }

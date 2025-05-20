@@ -88,6 +88,7 @@ export declare interface StatementDirective extends Chunk {
     type: ChunkType.STATEMENT_DIRECTIVE;
     name: string;
     statement: string;
+    docs?: CommentBlock;
 }
 
 export declare interface CommentBlock extends Position {

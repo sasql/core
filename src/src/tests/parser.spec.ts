@@ -9,7 +9,7 @@ describe('Parser test suite', () => {
             () => subStmtSasql
         );
 
-        console.log(JSON.stringify(sourceFile, null, 4));
+        // console.log(JSON.stringify(sourceFile, null, 4));
         console.log(sourceFile.diagnosticMessages);
     });
 

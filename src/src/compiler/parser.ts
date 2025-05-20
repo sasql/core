@@ -1,4 +1,11 @@
-import { ChunkType, SourceFile, TextChunk, Token, TokenType } from './types.js';
+import {
+    ChunkType,
+    CommentBlock,
+    SourceFile,
+    TextChunk,
+    Token,
+    TokenType
+} from './types.js';
 import { tokenize } from './tokenizer.js';
 import ts from 'typescript';
 import {
@@ -31,6 +38,8 @@ export function parseSourceFile(
         return sourceFile;
     }
 
+    // let lastCommentBlock: CommentBlock | undefined;
+
     while (true) {
         let token = tokens.shift();
         if (!token) return sourceFile;
@@ -43,6 +52,13 @@ export function parseSourceFile(
                     parseCommentBlock(token);
                 sourceFile.chunks.push(commentBlock);
                 sourceFile.diagnosticMessages.push(...diagnosticMessages);
+
+                // Check if this comment block is documenting a directive
+                if (tokens[0] && tokens[0].type === TokenType.DIRECTIVE) {
+                    token = tokens.shift()!;
+                    parseDirective(token, commentBlock);
+                }
+
                 break;
             case TokenType.DIRECTIVE:
                 parseDirective(token);
@@ -57,7 +73,7 @@ export function parseSourceFile(
         }
     }
 
-    function parseDirective(token: Token) {
+    function parseDirective(token: Token, docs?: CommentBlock) {
         if (token.text.startsWith('@use')) {
             try {
                 const use = parseUseDirective(srcPath, token, readFile);
@@ -85,7 +101,7 @@ export function parseSourceFile(
 
         if (token.text.startsWith('@statement')) {
             try {
-                const statement = parseStatementDirective(token);
+                const statement = parseStatementDirective(token, docs);
                 sourceFile.statements[statement.name] = statement;
             } catch (e) {
                 sourceFile.diagnosticMessages.push(<any>e);

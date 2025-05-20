@@ -111,6 +111,11 @@ export function tokenize(text: string) {
 
             if (char === '*' && chars[0] === '/') {
                 blockText += chars.shift(); // Remove the final '/'
+
+                if (/\s/.test(chars[0])) {
+                    blockText += chars.shift();
+                }
+
                 return {
                     type: TokenType.COMMENT_BLOCK,
                     text: blockText,

@@ -1,10 +1,8 @@
-export const virtualDir = '/home/usr/git/my-project/src/main.sasql';
-
 export const subStmtSasql = /*sql*/ `
 /**
  * This is the overall description of the stmt.
  * @param {string} $1 - The first parameter
- * @param {strinig | number} $2 - The second parameter
+ * @param {string | number} $2 - The second parameter
  */
 @statement select_from_my_table {
     SELECT
@@ -12,8 +10,8 @@ export const subStmtSasql = /*sql*/ `
     FROM
         my_table
     WHERE
-        column_a IS null
-        AND column_b = 25
+        column_a = $1
+        AND column_b = $2
 }
 `;
 
@@ -27,3 +25,6 @@ FROM
         @include my_import.select_from_my_table;
     ) as my_sub_stmt
 `;
+
+export const virtualDir = '/home/usr/git/my-project/src/main.sasql';
+export const virtualMainDir = '/home/usr/git/my-project/src/main.sasql';
