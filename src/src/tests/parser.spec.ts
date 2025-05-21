@@ -1,14 +1,19 @@
 import { parse } from '../compiler-v2/parser.js';
 import { tokenize } from '../compiler-v2/tokenizer.js';
 import { isIncludeDirectiveV2 } from '../compiler-v2/types.js';
-import { mainSasql, subStmtSasql } from './example-sasql.spec.js';
+import {
+    mainSasql,
+    subStmtSasql,
+    virtualDir,
+    virtualMainDir
+} from './example-sasql.spec.js';
 
 describe('Parser V2 test suite.', () => {
     test('Can parse sasql with statement declaration', () => {
-        const tokens = tokenize(subStmtSasql, {
-            tokenizeWhitespace: false
+        const { tokens } = tokenize(subStmtSasql, virtualDir, {
+            ignoreWhitespace: false
         });
-        const parsed = parse(tokens);
+        const parsed = parse(tokens, subStmtSasql, virtualDir);
 
         expect(parsed.chunks.length).toEqual(0);
 
@@ -39,10 +44,14 @@ describe('Parser V2 test suite.', () => {
     });
 
     test('Can parse sasql with @use and @include directives', () => {
-        const tokens = tokenize(mainSasql, {
-            tokenizeWhitespace: false
+        const { tokens } = tokenize(mainSasql, virtualMainDir, {
+            ignoreWhitespace: false
         });
-        const { chunks, imports, statements } = parse(tokens);
+        const { chunks, imports, statements } = parse(
+            tokens,
+            mainSasql,
+            virtualMainDir
+        );
 
         expect(chunks.length).toEqual(9);
 

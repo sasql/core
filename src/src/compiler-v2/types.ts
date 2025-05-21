@@ -1,3 +1,5 @@
+import { DiagnosticMessage } from './diagnostic-message.js';
+
 export declare interface Position {
     startIndex: number;
     endIndex: number;
@@ -14,7 +16,8 @@ export enum TokenType {
     TEXT,
     STRING,
     NUMBER,
-    VARIABLE
+    VARIABLE,
+    UNKNOWN
 }
 
 export declare interface Token {
@@ -30,6 +33,8 @@ export declare interface ParseResult {
     imports: Record<string, UseDirective>;
     statements: Record<string, StatementDirective>;
     chunks: (Token | IncludeDirective)[];
+    diagnosticMessages: DiagnosticMessage[];
+    unknownExceptions: unknown[];
 }
 
 export declare interface UseDirective {

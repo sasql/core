@@ -1,81 +1,207 @@
-import ts from 'typescript';
 import {
     isIncludeDirectiveV2,
     ParseResult,
     UseDirective,
     Token,
-    IncludeDirective
+    IncludeDirective,
+    StatementDirective
 } from './types.js';
 import { dirname, join } from 'path';
-import { DiagnosticMessage } from '../compiler/diagnostic-message.js';
+import { DiagnosticCategory, DiagnosticMessage } from './diagnostic-message.js';
 import { tokenize } from './tokenizer.js';
 import { parse } from './parser.js';
+import { format, FormatOptionsWithLanguage } from 'sql-formatter';
+import { sys } from './sys.js';
 
 export declare interface SourceFile extends ParseResult {
     tokens: Token[];
     toEmit: string;
+    formatted?: string;
+    diagnosticMessages: DiagnosticMessage[];
+    unknownExceptions: unknown[];
 }
 
-export function compile(
-    srcPath: string,
-    options: {
-        ignoreWhitespace: boolean;
-        removeComments: boolean;
-    },
-    sys?: {
-        readFile: typeof ts.sys.readFile;
-        fileExists: typeof ts.sys.fileExists;
-    },
-    srcToken?: UseDirective,
-    source?: string
-): SourceFile {
-    if (!source) {
-        source = readSrcFile(srcPath, srcToken, sys?.fileExists, sys?.readFile);
+export function createCompilerProgram(
+    entryPath: string,
+    options?: {
+        ignoreWhitespace?: boolean;
+        removeComments?: boolean;
+        entrySource?: string;
+        format?: FormatOptionsWithLanguage;
     }
-
-    // @todo - how will our modules be set up? This will likely lead to multiple parse passes for the same file
+): SourceFile {
+    /** Holds the source files for entry file and all descendents. */
     const includes: Record<string, SourceFile> = {};
 
-    const tokens = tokenize(source, {
-        tokenizeWhitespace: !(options.ignoreWhitespace || true)
-    });
-    const parseResult = parse(tokens, {
-        removeComments: options.removeComments ?? true
-    });
+    /** Holds diagnostic messages from entry file and all descendents. */
+    const diagnosticMessages: DiagnosticMessage[] = [];
 
-    const { chunks, imports, statements } = parseResult;
+    /** Holds unknown exceptions from entry file and all descendents. */
+    const unknownExceptions: unknown[] = [];
 
-    if (Object.keys(imports).length > 0) {
-        Object.entries(imports).forEach(([alias, use]) => {
-            const resolved = resolveImport(use, srcPath, options, sys);
-            includes[alias] = resolved;
-        });
+    return compile(entryPath, undefined, options?.entrySource);
+
+    function compile(
+        srcPath: string,
+        srcToken?: UseDirective,
+        source?: string
+    ): SourceFile {
+        if (!source) {
+            try {
+                source = readSrcFile(srcPath, srcToken);
+            } catch (e) {
+                onError(e);
+                source = '';
+            }
+        }
+
+        // Tokenize source
+        const tokens = tokenizeSrc(source, srcPath);
+
+        // Parse tokens
+        const { imports, chunks, statements } = parseSrc(
+            source,
+            srcPath,
+            tokens
+        );
+
+        // Resolve imports
+        resolveImports(srcPath, imports);
+
+        let toEmit = chunks
+            .map((chunk) => {
+                if (!isIncludeDirectiveV2(chunk)) return chunk.text;
+
+                try {
+                    return resolveInclude(source, srcPath, chunk);
+                } catch (e) {
+                    onError(e);
+                    return '';
+                }
+            })
+            .join(' ');
+
+        let formatted: string;
+
+        try {
+            const formatOptions = options?.format ?? {};
+
+            if (!formatOptions.language) {
+                formatOptions.language = 'postgresql';
+            }
+
+            formatted = format(toEmit, formatOptions);
+        } catch (e) {
+            onError(e);
+            formatted = '';
+        }
+
+        return {
+            tokens,
+            chunks,
+            imports,
+            statements,
+            toEmit,
+            formatted,
+            diagnosticMessages,
+            unknownExceptions
+        };
     }
 
-    let toEmit = chunks
-        .map((chunk) => {
-            if (!isIncludeDirectiveV2(chunk)) return chunk.text;
-            return resolveInclude(chunk);
-        })
-        .join(' ');
+    function tokenizeSrc(source: string, srcPath: string) {
+        let tokens: Token[] = [];
 
-    return {
-        tokens,
-        chunks,
-        imports,
-        statements,
-        toEmit
-    };
+        if (source) {
+            try {
+                const tokenizeResult = tokenize(source, srcPath, {
+                    ignoreWhitespace: options?.ignoreWhitespace || true
+                });
 
-    function resolveInclude(include: IncludeDirective) {
+                tokens = tokenizeResult.tokens;
+                diagnosticMessages.push(...tokenizeResult.diagnosticMessages);
+            } catch (e) {
+                onError(e);
+            }
+        }
+
+        return tokens;
+    }
+
+    function parseSrc(source: string, srcPath: string, tokens: Token[]) {
+        let imports: Record<string, UseDirective> = {};
+        let chunks: (Token | IncludeDirective)[] = [];
+        let statements: Record<string, StatementDirective> = {};
+
+        if (source) {
+            try {
+                const parseResult = parse(tokens, source, srcPath, {
+                    removeComments: options?.removeComments ?? true
+                });
+
+                imports = parseResult.imports;
+                chunks = parseResult.chunks;
+                statements = parseResult.statements;
+            } catch (e) {
+                onError(e);
+            }
+        }
+
+        return { imports, chunks, statements };
+    }
+
+    function resolveImports(
+        srcPath: string,
+        imports: Record<string, UseDirective>
+    ) {
+        if (Object.keys(imports).length > 0) {
+            Object.entries(imports).forEach(([alias, use]) => {
+                try {
+                    const resolved = compileImport(use, srcPath);
+                    includes[alias] = resolved;
+
+                    diagnosticMessages.push(...resolved.diagnosticMessages);
+                    unknownExceptions.push(...resolved.unknownExceptions);
+                } catch (e) {
+                    onError(e);
+                }
+            });
+        }
+    }
+
+    function compileImport(directive: UseDirective, srcPath: string) {
+        const { alias: _alias, path } = directive;
+
+        const srcDir = dirname(srcPath);
+
+        let relativePath = path.text.substring(1, path.text.length - 1);
+        if (!relativePath.endsWith('.sasql')) {
+            relativePath += '.sasql';
+        }
+
+        const importPath = join(srcDir, relativePath);
+
+        if (includes[importPath]) {
+            return includes[importPath];
+        }
+
+        return compile(join(srcDir, relativePath), directive);
+    }
+
+    function resolveInclude(
+        source: string,
+        srcPath: string,
+        include: IncludeDirective
+    ) {
         const { import: imported, module } = include;
 
         const resolvedImport = includes[module.text];
         if (!resolvedImport) {
             throw new DiagnosticMessage(
                 'Failed to resolve @include.',
-                imported.start,
-                imported.end
+                DiagnosticCategory.ERROR,
+                source ?? '',
+                srcPath,
+                module
             );
         }
 
@@ -84,8 +210,10 @@ export function compile(
         if (!resolvedStatement) {
             throw new DiagnosticMessage(
                 'Failed to resolve @include',
-                module.start,
-                module.end
+                DiagnosticCategory.ERROR,
+                source ?? '',
+                srcPath,
+                imported
             );
         }
 
@@ -94,62 +222,45 @@ export function compile(
             .map((token) => token.text)
             .join(' ');
     }
-}
 
-function readSrcFile(
-    srcPath: string,
-    srcToken?: UseDirective,
-    fileExists = ts.sys.fileExists,
-    readFile = ts.sys.readFile
-) {
-    if (!fileExists(srcPath)) {
-        if (srcToken) {
-            throw new DiagnosticMessage(
-                'Failed to resolve import',
-                srcToken.alias.start,
-                srcToken.alias.end
-            );
+    function onError(e: unknown) {
+        if (e instanceof DiagnosticMessage) {
+            diagnosticMessages.push(e);
         } else {
-            throw new Error('Failed to resolve src file.');
+            unknownExceptions.push(e);
         }
     }
 
-    const source = readFile(srcPath);
-    if (!source) {
-        if (srcToken) {
-            throw new DiagnosticMessage(
-                'Failed to read file.',
-                srcToken.path.start,
-                srcToken.path.end
-            );
-        } else {
-            throw new Error('Failed to read src file.');
+    function readSrcFile(srcPath: string, srcToken?: UseDirective) {
+        if (!sys.fileExists(srcPath)) {
+            if (srcToken) {
+                throw new DiagnosticMessage(
+                    'Failed to resolve import',
+                    DiagnosticCategory.ERROR,
+                    '',
+                    srcPath,
+                    srcToken.path
+                );
+            } else {
+                throw new Error('Failed to resolve src file.');
+            }
         }
+
+        const source = sys.readFile(srcPath);
+        if (!source) {
+            if (srcToken) {
+                throw new DiagnosticMessage(
+                    'Failed to read file.',
+                    DiagnosticCategory.ERROR,
+                    '',
+                    srcPath,
+                    srcToken.path
+                );
+            } else {
+                throw new Error('Failed to read src file.');
+            }
+        }
+
+        return source;
     }
-
-    return source;
-}
-
-function resolveImport(
-    directive: UseDirective,
-    srcPath: string,
-    options: {
-        ignoreWhitespace: boolean;
-        removeComments: boolean;
-    },
-    sys?: {
-        readFile: typeof ts.sys.readFile;
-        fileExists: typeof ts.sys.fileExists;
-    }
-) {
-    const { alias: _alias, path } = directive;
-
-    const srcDir = dirname(srcPath);
-
-    let relativePath = path.text.substring(1, path.text.length - 1);
-    if (!relativePath.endsWith('.sasql')) {
-        relativePath += '.sasql';
-    }
-
-    return compile(join(srcDir, relativePath), options, sys, directive);
 }

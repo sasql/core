@@ -1,4 +1,4 @@
-import { DiagnosticMessage } from '../compiler/diagnostic-message.js';
+import { DiagnosticCategory, DiagnosticMessage } from './diagnostic-message.js';
 import {
     TokenType,
     Token,
@@ -12,6 +12,8 @@ import {
 
 export function parse(
     _tokens: Token[],
+    source: string,
+    srcPath: string,
     options: {
         removeComments?: boolean;
     } = {}
@@ -20,9 +22,11 @@ export function parse(
 
     let tokens = [..._tokens];
 
-    let imports: Record<string, UseDirective> = {};
-    let statements: Record<string, StatementDirective> = {};
-    let chunks: (Token | IncludeDirective)[] = [];
+    const imports: Record<string, UseDirective> = {};
+    const statements: Record<string, StatementDirective> = {};
+    const chunks: (Token | IncludeDirective)[] = [];
+    const diagnosticMessages: DiagnosticMessage[] = [];
+    const unknownExceptions: unknown[] = [];
 
     while (true) {
         let token = tokens.shift();
@@ -30,7 +34,9 @@ export function parse(
             return {
                 chunks,
                 imports,
-                statements
+                statements,
+                diagnosticMessages,
+                unknownExceptions
             };
         }
 
@@ -61,22 +67,26 @@ export function parse(
     function parseDirective(token: Token, commentBlock?: any) {
         const { text } = token;
 
-        switch (text) {
-            case '@use':
-                const use = parseUseDirective(token);
-                imports[use.alias.text] = use;
-                break;
-            case '@include':
-                const include = parseIncludeDirective(token);
-                chunks.push(include);
-                break;
-            case '@statement':
-                const stmt = parseStatementDirective(token, commentBlock);
-                statements[stmt.stmtName.text] = stmt;
-                break;
-            default:
-                // This isn't a directive
-                chunks.push(token);
+        try {
+            switch (text) {
+                case '@use':
+                    const use = parseUseDirective(token);
+                    imports[use.alias.text] = use;
+                    break;
+                case '@include':
+                    const include = parseIncludeDirective(token);
+                    chunks.push(include);
+                    break;
+                case '@statement':
+                    const stmt = parseStatementDirective(token, commentBlock);
+                    statements[stmt.stmtName.text] = stmt;
+                    break;
+                default:
+                    // This isn't a directive
+                    chunks.push(token);
+            }
+        } catch (e) {
+            onError(e);
         }
     }
 
@@ -96,9 +106,19 @@ export function parse(
 
         return new DiagnosticMessage(
             errorMessage,
-            startToken.start,
-            startToken.end
+            DiagnosticCategory.ERROR,
+            source,
+            srcPath,
+            startToken
         );
+    }
+
+    function onError(e: unknown) {
+        if (e instanceof DiagnosticMessage) {
+            diagnosticMessages.push(e);
+        } else {
+            unknownExceptions.push(e);
+        }
     }
 
     function parseUseDirective(token: Token): UseDirective {
@@ -158,7 +178,6 @@ export function parse(
     ): StatementDirective {
         const stmtName = tokens.shift();
         if (!stmtName || stmtName.type !== TokenType.TEXT) {
-            console.log(stmtName);
             throw formatDiagnosticMessage(token, '@statement name', stmtName);
         }
 
@@ -167,7 +186,14 @@ export function parse(
             throw formatDiagnosticMessage(token, '{', openBrace);
         }
 
-        const bracedExpression = parseBracedExpression(openBrace);
+        let bracedExpression: Token[];
+
+        try {
+            bracedExpression = parseBracedExpression(openBrace);
+        } catch (e) {
+            onError(e);
+            bracedExpression = [];
+        }
 
         return {
             stmtName,
@@ -186,8 +212,10 @@ export function parse(
             if (!nextToken) {
                 throw new DiagnosticMessage(
                     'Braced expression not terminated',
-                    token.start,
-                    token.end
+                    DiagnosticCategory.ERROR,
+                    source,
+                    srcPath,
+                    token
                 );
             }
 
@@ -210,11 +238,12 @@ export function parse(
         while (true) {
             let nextToken = tokens.shift();
             if (!nextToken) {
-                console.log(commentTokens);
                 throw new DiagnosticMessage(
                     'Unterminated comment block',
-                    token.start,
-                    token.end
+                    DiagnosticCategory.ERROR,
+                    source,
+                    srcPath,
+                    token
                 );
             }
 
@@ -227,7 +256,11 @@ export function parse(
             }
 
             if (nextToken.text.startsWith('@')) {
-                tags.push(parseDocTag(nextToken));
+                try {
+                    tags.push(parseDocTag(nextToken));
+                } catch (e) {
+                    onError(e);
+                }
                 continue;
             }
 
@@ -240,11 +273,17 @@ export function parse(
             let tagDescription: Token[] | undefined;
 
             while (true) {
-                if (
-                    !tokens[0] ||
-                    tokens[0].text.startsWith('@') ||
-                    tokens[0].text === '*/'
-                ) {
+                if (!tokens[0]) {
+                    throw new DiagnosticMessage(
+                        'Unterminated comment block.',
+                        DiagnosticCategory.WARNING,
+                        source,
+                        srcPath,
+                        tag
+                    );
+                }
+
+                if (tokens[0].text.startsWith('@') || tokens[0].text === '*/') {
                     return { tag, tagType, tagParam, tagDescription };
                 }
 

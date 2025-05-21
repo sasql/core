@@ -1,32 +1,38 @@
-import { DiagnosticMessage } from '../compiler/diagnostic-message.js';
+import { DiagnosticCategory, DiagnosticMessage } from './diagnostic-message.js';
 import { Token, TokenType } from './types.js';
 
+export declare interface TokinizationResult {
+    tokens: Token[];
+    diagnosticMessages: DiagnosticMessage[];
+}
+
 export function tokenize(
-    text: string,
-    options: {
-        tokenizeWhitespace?: boolean;
-    } = {}
-) {
+    source: string,
+    srcPath: string,
+    options: { ignoreWhitespace?: boolean } = {}
+): TokinizationResult {
     const tokens: Token[] = [];
+    const diagnosticMessages: DiagnosticMessage[] = [];
 
     let ln = 1;
     let col = 1;
     let start: number;
 
-    let tokenizeWhitespace = options.tokenizeWhitespace ?? true;
+    // @todo - fix double-negative
+    let ignoreWhitespace = options.ignoreWhitespace ?? true;
     let specialRegex = /[{}()[\]\\\/;*=.]/;
 
-    const chars = [...text];
+    const chars = [...source];
 
     while (true) {
         let char = shift();
-        if (!char) return tokens;
+        if (!char) return { tokens, diagnosticMessages };
 
         start = index();
 
         if (/\s/.test(char)) {
             const ws = consumeWhitespace(char);
-            if (tokenizeWhitespace) {
+            if (!ignoreWhitespace) {
                 tokens.push(ws);
             }
             continue;
@@ -84,7 +90,7 @@ export function tokenize(
     }
 
     function index() {
-        return text.length - chars.length;
+        return source.length - chars.length;
     }
 
     function consumeWhitespace(text: string): Token {
@@ -191,11 +197,31 @@ export function tokenize(
             const char = shift()!;
 
             if (!char) {
-                throw new DiagnosticMessage(
-                    'Unterminated string',
-                    _start,
-                    index()
+                diagnosticMessages.push(
+                    new DiagnosticMessage(
+                        'Unterminated string',
+                        DiagnosticCategory.ERROR,
+                        text,
+                        srcPath,
+                        {
+                            col: _col,
+                            end: index(),
+                            ln: _ln,
+                            start: _start,
+                            text,
+                            type: TokenType.UNKNOWN
+                        }
+                    )
                 );
+
+                return {
+                    text: text,
+                    type: TokenType.STRING,
+                    ln: _ln,
+                    col: _col,
+                    start: _start,
+                    end: index()
+                };
             }
 
             text += char;
