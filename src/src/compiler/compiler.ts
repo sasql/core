@@ -14,14 +14,46 @@ import { format, FormatOptionsWithLanguage } from 'sql-formatter';
 import { sys } from './sys.js';
 
 export declare interface Compiler {
+    /** The source text of the .sasql file. */
     source: string;
+
+    /** The absolute path to the .sasql file. */
     srcPath: string;
+
+    /** The directive that imports this file. */
     srcToken?: UseDirective;
+
+    /** Files that this file imports via `@use`. */
     imports: Record<string, Compiler>;
+
+    /** Files that imported this file via `@use`. */
     dependants: Compiler[];
+
+    /** Statements declared in this file via `@statement`. */
     statements: Record<string, StatementDirective>;
-    formatted: string | undefined;
+
+    /**
+     * The compiled out. Has a value of `undefined` until
+     * {@link compile} is called.
+     */
     output: string | undefined;
+
+    /**
+     * {@link output}, formatted. Has value of `undefined` if
+     * {@link compile} hasn't been called or `format` fails.
+     */
+    formatted: string | undefined;
+
+    /** Holds diagnostic messages from entry file and all descendents. */
+    diagnosticMessages: DiagnosticMessage[];
+
+    /** Holds unknown exceptions from entry file and all descendents. */
+    unknownExceptions: unknown[];
+
+    /**
+     * Compiles this file.
+     * @param compileImports `true` if files imported via `@use` should be compiled.
+     */
     compile(compileChildren?: boolean): CompilerOutput;
     tokenize(): Token[];
     parseSrc(tokens: Token[]): ParseResult;
@@ -53,14 +85,7 @@ export function createCompilerProgram(
     /** Holds the source files for entry file and all descendents. */
     const includes: Record<string, Compiler> = {};
 
-    /** Holds diagnostic messages from entry file and all descendents. */
-    const diagnosticMessages: DiagnosticMessage[] = [];
-
-    /** Holds unknown exceptions from entry file and all descendents. */
-    const unknownExceptions: unknown[] = [];
-
     class _Compiler implements Compiler {
-        /** The file  */
         public source: string;
 
         public imports: Record<string, Compiler> = {};
@@ -69,9 +94,13 @@ export function createCompilerProgram(
 
         public statements: Record<string, StatementDirective> = {};
 
+        public output: string | undefined;
+
         public formatted: string | undefined;
 
-        public output: string | undefined;
+        public diagnosticMessages: DiagnosticMessage[] = [];
+
+        public unknownExceptions: unknown[] = [];
 
         constructor(
             public srcPath: string,
@@ -82,7 +111,7 @@ export function createCompilerProgram(
                 try {
                     this.source = this.readSrcFile();
                 } catch (e) {
-                    onError(e);
+                    this._onError(e);
                     this.source = '';
                 }
             } else {
@@ -123,7 +152,11 @@ export function createCompilerProgram(
             return source;
         }
 
-        compile(compileChildren?: boolean): CompilerOutput {
+        compile(compileImports?: boolean): CompilerOutput {
+            // Clear diagnostic messages
+            this.diagnosticMessages.length = 0;
+            this.unknownExceptions.length = 0;
+
             // Tokenize the source text
             const tokens = this.tokenize();
 
@@ -135,9 +168,9 @@ export function createCompilerProgram(
             // Resolve and compile imports
             Object.entries(imports).forEach(([alias, use]) => {
                 try {
-                    this.resolveImport(alias, use, compileChildren);
+                    this.resolveImport(alias, use, compileImports);
                 } catch (e) {
-                    onError(e);
+                    this._onError(e);
                 }
             });
 
@@ -149,7 +182,7 @@ export function createCompilerProgram(
                     try {
                         return this.resolveInclude(chunk);
                     } catch (e) {
-                        onError(e);
+                        this._onError(e);
                         return '';
                     }
                 })
@@ -164,15 +197,15 @@ export function createCompilerProgram(
 
                 this.formatted = format(this.output, formatOptions);
             } catch (e) {
-                onError(e);
+                this._onError(e);
                 this.formatted = '';
             }
 
             return {
                 output: this.output,
                 formatted: this.formatted,
-                diagnosticMessages,
-                unknownExceptions
+                diagnosticMessages: this.diagnosticMessages,
+                unknownExceptions: this.unknownExceptions
             };
         }
 
@@ -186,11 +219,11 @@ export function createCompilerProgram(
                     });
 
                     tokens = tokenizeResult.tokens;
-                    diagnosticMessages.push(
+                    this.diagnosticMessages.push(
                         ...tokenizeResult.diagnosticMessages
                     );
                 } catch (e) {
-                    onError(e);
+                    this._onError(e);
                 }
             }
 
@@ -209,12 +242,16 @@ export function createCompilerProgram(
                         }
                     );
 
-                    diagnosticMessages.push(...parseResult.diagnosticMessages);
-                    unknownExceptions.push(...parseResult.unknownExceptions);
+                    this.diagnosticMessages.push(
+                        ...parseResult.diagnosticMessages
+                    );
+                    this.unknownExceptions.push(
+                        ...parseResult.unknownExceptions
+                    );
 
                     return parseResult;
                 } catch (e) {
-                    onError(e);
+                    this._onError(e);
                 }
             }
 
@@ -232,11 +269,27 @@ export function createCompilerProgram(
             directive: UseDirective,
             compile = true
         ): void {
-            const absolutePath = this._resolveImportPath(directive.path.text);
+            let absolutePath: string;
 
-            // If this imported file has already been compiled, load it
+            try {
+                absolutePath = this._resolveImportPath(
+                    directive.path,
+                    directive.path.text
+                );
+            } catch (e) {
+                this._onError(e);
+                return;
+            }
+
+            // If this imported file has already been compiled--load it
             if (includes[absolutePath]) {
-                this.imports[alias] = includes[absolutePath];
+                const imported = includes[absolutePath];
+
+                this.imports[alias] = imported;
+
+                this.diagnosticMessages.push(...imported.diagnosticMessages);
+                this.unknownExceptions.push(...imported.unknownExceptions);
+
                 return;
             }
 
@@ -244,6 +297,10 @@ export function createCompilerProgram(
             const compiler = new _Compiler(absolutePath, directive);
 
             if (compile) compiler.compile();
+
+            // Reattach the imported file's diagnostic messages
+            this.diagnosticMessages.push(...compiler.diagnosticMessages);
+            this.unknownExceptions.push(...compiler.unknownExceptions);
 
             // Push this as a child of the import
             compiler.dependants.push(compiler);
@@ -255,7 +312,7 @@ export function createCompilerProgram(
             includes[absolutePath] = compiler;
         }
 
-        private _resolveImportPath(path: string) {
+        private _resolveImportPath(lastToken: Token, path: string) {
             // Remove any trailing or leading quotes
             if (/^["']/.test(path)) path = path.substring(1);
             if (/["']$/.test(path)) path = path.substring(0, path.length - 1);
@@ -263,13 +320,23 @@ export function createCompilerProgram(
             // Append file extension if it wasn't included in the import path
             if (!path.endsWith('.sasql')) path += '.sasql';
 
-            // If the file exists, we don't need to resolve it
-            if (sys.fileExists(path)) {
-                return path;
-            } else {
+            // If the file does nto exist, we might need to resolve it
+            if (!sys.fileExists(path)) {
                 const srcDir = dirname(this.srcPath);
-                return join(srcDir, path);
+                path = join(srcDir, path);
+
+                if (!sys.fileExists(path)) {
+                    throw new DiagnosticMessage(
+                        'Failed to resolve import.',
+                        DiagnosticCategory.ERROR,
+                        this.source,
+                        this.srcPath,
+                        lastToken
+                    );
+                }
             }
+
+            return path;
         }
 
         resolveInclude(include: IncludeDirective): string {
@@ -278,7 +345,7 @@ export function createCompilerProgram(
             const resolvedImport = this.imports[module.text];
             if (!resolvedImport) {
                 throw new DiagnosticMessage(
-                    'Failed to resolve @include.',
+                    `Failed to resolve module ${module.text}.`,
                     DiagnosticCategory.ERROR,
                     this.source ?? '',
                     this.srcPath,
@@ -303,13 +370,13 @@ export function createCompilerProgram(
                 .map((token) => token.text)
                 .join(' ');
         }
-    }
 
-    function onError(e: unknown) {
-        if (e instanceof DiagnosticMessage) {
-            diagnosticMessages.push(e);
-        } else {
-            unknownExceptions.push(e);
+        private _onError(e: unknown) {
+            if (e instanceof DiagnosticMessage) {
+                this.diagnosticMessages.push(e);
+            } else {
+                this.unknownExceptions.push(e);
+            }
         }
     }
 

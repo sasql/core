@@ -6,9 +6,9 @@
     "type": "module",
     "scripts": {},
     "author": "Alexander Porrello",
-    "dependencies": {},
     "devDependencies": {
         "prettier": "^3.3.3",
-        "typescript": "^5.6.3"
+        "typescript": "^5.6.3",
+        "vscode-languageserver": "^9.0.1"
     }
 }

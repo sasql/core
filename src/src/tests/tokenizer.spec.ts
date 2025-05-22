@@ -1,10 +1,14 @@
 import { tokenize } from '../compiler/tokenizer.js';
-import { mainSasql, subStmtSasql } from './example-sasql.spec.js';
+import {
+    mainSasql,
+    subStmtSasql,
+    virtualMainDir
+} from './example-sasql.spec.js';
 
 describe('Tokenizer v2 test suite', () => {
     test('Can tokenize sasql that has an import and include.', () => {
-        const tokenized = tokenize(mainSasql, {
-            tokenizeWhitespace: false
+        const tokenized = tokenize(mainSasql, virtualMainDir, {
+            ignoreWhitespace: true
         });
 
         const expectedTokenVals = [
@@ -27,14 +31,14 @@ describe('Tokenizer v2 test suite', () => {
             'my_sub_stmt'
         ];
 
-        tokenized.forEach((t, i) => {
+        tokenized.tokens.forEach((t, i) => {
             expect(t.text).toEqual(expectedTokenVals[i]);
         });
     });
 
     test('Can tokenize sql that defines a stmt', () => {
-        const tokenized = tokenize(subStmtSasql, {
-            tokenizeWhitespace: false
+        const tokenized = tokenize(subStmtSasql, virtualMainDir, {
+            ignoreWhitespace: true
         });
 
         const expectedTokenVals = [
@@ -90,20 +94,33 @@ describe('Tokenizer v2 test suite', () => {
             '}'
         ];
 
-        tokenized.forEach((t, i) => {
+        tokenized.tokens.forEach((t, i) => {
             expect(t.text).toEqual(expectedTokenVals[i]);
         });
     });
 
-    test('Can parse comment line', () => {
-        const commentLn = /*sql*/ `
-            --comment line
-        `;
+    test('Records the correct token positions', () => {
+        testTokenPosns(mainSasql);
+        testTokenPosns(subStmtSasql);
+    });
 
-        const tokenized = tokenize(commentLn, {
-            tokenizeWhitespace: false
+    function testTokenPosns(sasql: string) {
+        const tokenized = tokenize(sasql, virtualMainDir, {
+            ignoreWhitespace: true
         });
 
-        expect(tokenized[0].text).toEqual('--comment line');
-    });
+        const lns = sasql.split(/\n/g);
+
+        tokenized.tokens.forEach((t) => {
+            expect(sasql.substring(t.startIndex, t.endIndex)).toEqual(t.text);
+
+            const ln = lns[t.start.line - 1];
+            const text = ln.substring(
+                t.start.character - 1,
+                t.end.character - 1
+            );
+
+            expect(t.text).toEqual(text);
+        });
+    }
 });

@@ -1,10 +1,9 @@
+import type { Range } from 'vscode-languageserver';
 import { DiagnosticMessage } from './diagnostic-message.js';
 
 export declare interface Position {
     startIndex: number;
     endIndex: number;
-    ln: number;
-    col: number;
 }
 
 export enum TokenType {
@@ -20,13 +19,9 @@ export enum TokenType {
     UNKNOWN
 }
 
-export declare interface Token {
+export declare interface Token extends Range, Position {
     type: TokenType;
     text: string;
-    ln: number;
-    col: number;
-    start: number;
-    end: number;
 }
 
 export declare interface ParseResult {

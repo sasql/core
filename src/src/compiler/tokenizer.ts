@@ -1,5 +1,6 @@
+import { Range } from 'vscode-languageserver';
 import { DiagnosticCategory, DiagnosticMessage } from './diagnostic-message.js';
-import { Token, TokenType } from './types.js';
+import { Position, Token, TokenType } from './types.js';
 
 export declare interface TokinizationResult {
     tokens: Token[];
@@ -18,7 +19,6 @@ export function tokenize(
     let col = 1;
     let start: number;
 
-    // @todo - fix double-negative
     let ignoreWhitespace = options.ignoreWhitespace ?? true;
     let specialRegex = /[{}()[\]\\\/;*=.]/;
 
@@ -89,27 +89,30 @@ export function tokenize(
         return char;
     }
 
+    function unshift(char: string) {
+        chars.unshift(char);
+        if (char === '\n') {
+            ln -= 1;
+        }
+        col = col - 1;
+    }
+
     function index() {
         return source.length - chars.length;
     }
 
     function consumeWhitespace(text: string): Token {
-        const _ln = ln;
-        const _col = col;
-        const _start = start - 1;
+        const range = initRange();
 
         while (true) {
             let char = shift();
 
             if (!char || !/\s/.test(char)) {
-                if (char) chars.unshift(char);
+                if (char) unshift(char);
                 return {
                     text,
                     type: TokenType.WHITESPACE,
-                    ln: _ln,
-                    col: _col,
-                    start: _start,
-                    end: index()
+                    ...range.lock()
                 };
             }
 
@@ -118,19 +121,14 @@ export function tokenize(
     }
 
     function consumeLine(text: string, lineType: TokenType): Token {
-        const _ln = ln;
-        const _col = col;
-        const _start = start - 1;
+        const range = initRange();
 
         while (true) {
             if (!chars[0] || /\n|\r/.test(chars[0])) {
                 return {
                     text,
                     type: lineType,
-                    ln: _ln,
-                    col: _col,
-                    start: _start,
-                    end: index()
+                    ...range.lock()
                 };
             }
 
@@ -139,9 +137,7 @@ export function tokenize(
     }
 
     function consumeWord(text: string, type: TokenType): Token {
-        const _ln = ln;
-        const _col = col;
-        const _start = start - 1;
+        const range = initRange();
 
         while (true) {
             if (
@@ -149,14 +145,7 @@ export function tokenize(
                 /\s/.test(chars[0]) ||
                 specialRegex.test(chars[0])
             ) {
-                return {
-                    text,
-                    type,
-                    ln: _ln,
-                    col: _col,
-                    start: _start,
-                    end: index()
-                };
+                return { text, type, ...range.lock() };
             }
 
             text += shift()!;
@@ -164,9 +153,7 @@ export function tokenize(
     }
 
     function consumeSpecial(text: string): Token {
-        const _ln = ln;
-        const _col = col;
-        const _start = start - 1;
+        const range = initRange();
 
         while (true) {
             if (
@@ -174,14 +161,7 @@ export function tokenize(
                 /\s/.test(chars[0]) ||
                 !specialRegex.test(chars[0])
             ) {
-                return {
-                    text,
-                    type: TokenType.PUNCTUATION,
-                    ln: _ln,
-                    col: _col,
-                    start: _start,
-                    end: index()
-                };
+                return { text, type: TokenType.PUNCTUATION, ...range.lock() };
             }
 
             text += shift()!;
@@ -189,9 +169,7 @@ export function tokenize(
     }
 
     function consumeQuotedString(text: string): Token {
-        const _ln = ln;
-        const _col = col;
-        const _start = start - 1;
+        const range = initRange();
 
         while (true) {
             const char = shift()!;
@@ -204,12 +182,9 @@ export function tokenize(
                         text,
                         srcPath,
                         {
-                            col: _col,
-                            end: index(),
-                            ln: _ln,
-                            start: _start,
                             text,
-                            type: TokenType.UNKNOWN
+                            type: TokenType.UNKNOWN,
+                            ...range.lock()
                         }
                     )
                 );
@@ -217,10 +192,7 @@ export function tokenize(
                 return {
                     text: text,
                     type: TokenType.STRING,
-                    ln: _ln,
-                    col: _col,
-                    start: _start,
-                    end: index()
+                    ...range.lock()
                 };
             }
 
@@ -233,12 +205,32 @@ export function tokenize(
                 return {
                     text: text,
                     type: TokenType.STRING,
-                    ln: _ln,
-                    col: _col,
-                    start: _start,
-                    end: index()
+                    ...range.lock()
                 };
             }
         }
+    }
+
+    function initRange(offset = 1): { lock: () => Range & Position } {
+        const startCol = col;
+        const startLn = ln;
+        const startIndex = start - offset;
+
+        return {
+            lock: () => {
+                return {
+                    startIndex,
+                    endIndex: index(),
+                    start: {
+                        character: startCol - offset,
+                        line: startLn
+                    },
+                    end: {
+                        character: col,
+                        line: ln
+                    }
+                };
+            }
+        };
     }
 }

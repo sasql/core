@@ -1,17 +1,17 @@
-import { Token } from './types.js';
+import { Range } from 'vscode-languageserver';
+import { Position, Token } from './types.js';
 
 export enum DiagnosticCategory {
-    ERROR,
-    WARNING,
-    INFO
+    ERROR = 1,
+    WARNING = 2,
+    INFORMATION = 3,
+    HINT = 4
 }
 
 export class DiagnosticMessage extends Error {
     public tokenText: string;
-    public ln: number;
-    public col: number;
-    public startIndex: number;
-    public endIndex: number;
+    public range: Range;
+    public position: Position;
 
     constructor(
         messageText: string,
@@ -23,9 +23,13 @@ export class DiagnosticMessage extends Error {
         super(messageText);
 
         this.tokenText = lastToken.text;
-        this.ln = lastToken.ln;
-        this.col = lastToken.col;
-        this.startIndex = lastToken.start;
-        this.endIndex = lastToken.end;
+        this.range = {
+            start: lastToken.start,
+            end: lastToken.end
+        };
+        this.position = {
+            startIndex: lastToken.startIndex,
+            endIndex: lastToken.endIndex
+        };
     }
 }

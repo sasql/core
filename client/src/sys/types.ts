@@ -1,3 +1,5 @@
+import { type Range } from 'vscode-languageserver';
+
 export declare interface SourceFile {
     text: string;
     srcPath: string;
@@ -6,10 +8,7 @@ export declare interface SourceFile {
     comments: CommentBlock[];
 }
 
-export declare interface Position {
-    startIndex: number;
-    endIndex: number;
-}
+export declare interface Position extends Range {}
 
 export declare interface Directive extends Position {
     text: string;

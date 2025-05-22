@@ -28,3 +28,10 @@ FROM
 
 export const virtualDir = '/home/usr/git/my-project/src/main.sasql';
 export const virtualMainDir = '/home/usr/git/my-project/src/main.sasql';
+
+export const tokenPosn = /*sql*/ `SELECT
+*
+FROM
+(
+    @include my_import.select_from_my_table;
+) as my_sub_stmt`;

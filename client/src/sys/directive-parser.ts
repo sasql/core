@@ -33,8 +33,8 @@ export function parseDirectives(
 
     directives.forEach((directive) => {
         const directiveText = text.substring(
-            directive.startIndex,
-            directive.endIndex
+            directive.start.character,
+            directive.end.character
         );
 
         if (directiveText.startsWith('-')) {
@@ -61,8 +61,8 @@ export function parseDirectives(
 
             included.push({
                 include: _included,
-                startIndex: directive.startIndex,
-                endIndex: directive.endIndex
+                start: directive.start,
+                end: directive.end
             });
         }
     });
@@ -98,8 +98,8 @@ function parseUseDirective(
     return {
         sourceFile: importedSource,
         alias,
-        startIndex: directive.startIndex,
-        endIndex: directive.endIndex
+        start: directive.start,
+        end: directive.end
     };
 }
 
@@ -108,8 +108,8 @@ function parseCommentDirective(
     directiveText: string
 ): CommentDirective {
     return {
-        startIndex: directive.startIndex,
-        endIndex: directive.endIndex,
+        start: directive.start,
+        end: directive.end,
         comment: directiveText
     };
 }
