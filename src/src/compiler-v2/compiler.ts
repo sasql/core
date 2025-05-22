@@ -5,13 +5,23 @@ import {
     Token,
     IncludeDirective,
     StatementDirective
-} from './types.js';
+} from '../compiler/types.js';
 import { dirname, join } from 'path';
-import { DiagnosticCategory, DiagnosticMessage } from './diagnostic-message.js';
-import { tokenize } from './tokenizer.js';
-import { parse } from './parser.js';
+import {
+    DiagnosticCategory,
+    DiagnosticMessage
+} from '../compiler/diagnostic-message.js';
+import { tokenize } from '../compiler/tokenizer.js';
+import { parse } from '../compiler/parser.js';
 import { format, FormatOptionsWithLanguage } from 'sql-formatter';
-import { sys } from './sys.js';
+import { sys } from '../compiler/sys.js';
+
+export declare interface CompilerProgram {
+    includes: Record<string, SourceFile>;
+    entrySourceFile: SourceFile;
+    diagnosticMessages: DiagnosticMessage[];
+    unknownExceptions: unknown[];
+}
 
 export declare interface SourceFile extends ParseResult {
     tokens: Token[];
@@ -29,7 +39,7 @@ export function createCompilerProgram(
         entrySource?: string;
         format?: FormatOptionsWithLanguage;
     }
-): SourceFile {
+): CompilerProgram {
     /** Holds the source files for entry file and all descendents. */
     const includes: Record<string, SourceFile> = {};
 
@@ -39,7 +49,14 @@ export function createCompilerProgram(
     /** Holds unknown exceptions from entry file and all descendents. */
     const unknownExceptions: unknown[] = [];
 
-    return compile(entryPath, undefined, options?.entrySource);
+    const entrySourceFile = compile(entryPath, undefined, options?.entrySource);
+
+    return {
+        includes,
+        entrySourceFile,
+        diagnosticMessages,
+        unknownExceptions
+    };
 
     function compile(
         srcPath: string,

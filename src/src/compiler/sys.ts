@@ -7,4 +7,5 @@ export namespace sys {
     export const watchFile = ts.sys.watchFile;
     export const createDirectory = ts.sys.createDirectory;
     export const writeFile = ts.sys.writeFile;
+    export const resolvePath = ts.sys.resolvePath;
 }

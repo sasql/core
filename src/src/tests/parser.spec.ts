@@ -1,6 +1,6 @@
-import { parse } from '../compiler-v2/parser.js';
-import { tokenize } from '../compiler-v2/tokenizer.js';
-import { isIncludeDirectiveV2 } from '../compiler-v2/types.js';
+import { parse } from '../compiler/parser.js';
+import { tokenize } from '../compiler/tokenizer.js';
+import { isIncludeDirectiveV2 } from '../compiler/types.js';
 import {
     mainSasql,
     subStmtSasql,

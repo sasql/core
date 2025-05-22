@@ -34,12 +34,11 @@
 	//
 	// SCHEMA
 	//
-	"json.schemas": [
-		{
-			"fileMatch": [
-				"**/tsconfig.json"
-			],
-			"url": "fart"
-		}
-	]
+	// "json.schemas": [
+	// 	{
+	// 		"fileMatch": [
+	// 			"**/tsconfig.json"
+	// 		],
+	// 	}
+	// ]
 }

@@ -1,4 +1,4 @@
-import { parseSourceFile } from '../../compiler/parser.js';
+import { parseSourceFile } from '../../compiler-v1/parser.js';
 import { mainSasql, subStmtSasql, virtualDir } from '../example-sasql.spec.js';
 
 describe('Parser test suite', () => {

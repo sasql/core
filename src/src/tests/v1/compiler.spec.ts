@@ -1,5 +1,5 @@
-import { compile } from '../../compiler/compiler.js';
-import { parseSourceFile } from '../../compiler/parser.js';
+import { compile } from '../../compiler-v1/compiler.js';
+import { parseSourceFile } from '../../compiler-v1/parser.js';
 import { mainSasql, subStmtSasql } from '../example-sasql.spec.js';
 
 describe('Compiler test suite', () => {

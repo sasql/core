@@ -1,105 +1,72 @@
 import { DiagnosticMessage } from './diagnostic-message.js';
 
-export declare interface SourceFile {
-    text: string;
-    srcPath: string;
-    imports: Record<string, UseDirective>;
-    chunks: (
-        | TextChunk
-        | IncludeDirective
-        | CommentBlock
-        | StatementDirective
-    )[];
-    statements: Record<string, StatementDirective>;
-    diagnosticMessages: DiagnosticMessage[];
-}
-
-export declare interface Output {
-    source: SourceFile;
-    emit: string;
-    sourceMap: SourceMapEntry[];
-    diagnostics: DiagnosticMessage[];
-}
-
 export declare interface Position {
     startIndex: number;
     endIndex: number;
+    ln: number;
+    col: number;
 }
-
-export declare interface Source extends Position {
-    path: string;
-}
-
-export declare interface SourceMapEntry {
-    local: Source;
-    remote: Source;
-}
-
-//
-// Token
-//
 
 export enum TokenType {
-    TEXT_CHUNK,
     DIRECTIVE,
+    PUNCTUATION,
+    WHITESPACE,
     COMMENT_BLOCK,
-    COMMENT
+    COMMENT_LN,
+    TEXT,
+    STRING,
+    NUMBER,
+    VARIABLE,
+    UNKNOWN
 }
 
-export declare interface Token extends Position {
+export declare interface Token {
     type: TokenType;
     text: string;
+    ln: number;
+    col: number;
+    start: number;
+    end: number;
 }
 
-//
-// Chunk
-//
-
-export enum ChunkType {
-    USE_DIRECTIVE,
-    INCLUDE_DIRECTIVE,
-    STATEMENT_DIRECTIVE,
-    COMMENT_BLOCK,
-    TEXT_CHUNK
+export declare interface ParseResult {
+    imports: Record<string, UseDirective>;
+    statements: Record<string, StatementDirective>;
+    chunks: (Token | IncludeDirective)[];
+    diagnosticMessages: DiagnosticMessage[];
+    unknownExceptions: unknown[];
 }
 
-export declare interface Chunk extends Position {
-    type: ChunkType;
+export declare interface UseDirective {
+    path: Token;
+    alias: Token;
 }
 
-export declare interface TextChunk extends Chunk {
-    type: ChunkType.TEXT_CHUNK;
-    text: string;
+export declare interface IncludeDirective {
+    module: Token;
+    import: Token;
 }
 
-export declare interface UseDirective extends Chunk {
-    type: ChunkType.USE_DIRECTIVE;
-    alias: string;
-    sourceFile: SourceFile;
+export function isIncludeDirectiveV2(val: any): val is IncludeDirective {
+    return (
+        val !== null && val !== undefined && 'module' in val && 'import' in val
+    );
 }
 
-export declare interface IncludeDirective extends Chunk {
-    type: ChunkType.INCLUDE_DIRECTIVE;
-    include: SourceFile;
-    import: string;
+export declare interface StatementDirective {
+    stmtName: Token;
+    bracedExpression: Token[];
+    commentBlock?: CommentBlock;
 }
 
-export declare interface StatementDirective extends Chunk {
-    type: ChunkType.STATEMENT_DIRECTIVE;
-    name: string;
-    statement: string;
-    docs?: CommentBlock;
+export declare interface CommentBlock {
+    description: Token[];
+    tags: DocTag[];
 }
 
-export declare interface CommentBlock extends Position {
-    type: ChunkType.COMMENT_BLOCK;
-    text?: string;
-    tags?: DocTaggedLn[];
-}
-
-export declare interface DocTaggedLn {
-    tagName: string;
-    type: string[];
-    paramName: string;
-    description: string;
+export declare interface DocTag {
+    tag: Token;
+    tagType?: Token[];
+    tagParam?: Token;
+    tagDescription?: Token[];
 }

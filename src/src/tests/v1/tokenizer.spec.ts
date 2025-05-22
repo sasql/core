@@ -1,4 +1,4 @@
-import { tokenize } from '../../compiler/tokenizer.js';
+import { tokenize } from '../../compiler-v1/tokenizer.js';
 import { mainSasql, subStmtSasql } from '../example-sasql.spec.js';
 
 describe('Tokenizer test suite', () => {

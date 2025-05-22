@@ -1,195 +1,244 @@
-import { TokenType, type Token } from './types.js';
+import { DiagnosticCategory, DiagnosticMessage } from './diagnostic-message.js';
+import { Token, TokenType } from './types.js';
 
-export function tokenize(text: string) {
-    const chunks: Token[] = [];
+export declare interface TokinizationResult {
+    tokens: Token[];
+    diagnosticMessages: DiagnosticMessage[];
+}
 
-    const chars = [...text];
+export function tokenize(
+    source: string,
+    srcPath: string,
+    options: { ignoreWhitespace?: boolean } = {}
+): TokinizationResult {
+    const tokens: Token[] = [];
+    const diagnosticMessages: DiagnosticMessage[] = [];
 
-    let thisChunk = '';
-    let start = index();
+    let ln = 1;
+    let col = 1;
+    let start: number;
+
+    // @todo - fix double-negative
+    let ignoreWhitespace = options.ignoreWhitespace ?? true;
+    let specialRegex = /[{}()[\]\\\/;*=.]/;
+
+    const chars = [...source];
 
     while (true) {
-        let char = chars.shift();
+        let char = shift();
+        if (!char) return { tokens, diagnosticMessages };
 
-        if (char === undefined) {
-            if (thisChunk.length > 0) {
-                chunks.push({
-                    type: TokenType.TEXT_CHUNK,
-                    text: thisChunk,
-                    startIndex: start,
-                    endIndex: index()
-                });
+        start = index();
+
+        if (/\s/.test(char)) {
+            const ws = consumeWhitespace(char);
+            if (!ignoreWhitespace) {
+                tokens.push(ws);
             }
-            return chunks;
-        }
-
-        if (char === '-' && char[0] === '-') {
-            pushChunk();
-            chunks.push(consumeComment());
-            start = index();
-            continue;
-        }
-
-        if (char === '/' && chars[0] === '*') {
-            pushChunk();
-            chunks.push(consumeCommentBlock());
-            start = index();
             continue;
         }
 
         if (char === '@') {
-            pushChunk();
-            chunks.push(consumeDirective());
-            start = index();
+            tokens.push(consumeWord(char, TokenType.DIRECTIVE));
             continue;
         }
 
-        thisChunk += char;
+        if (char === '-' && chars[0] === '-') {
+            tokens.push(consumeLine(char, TokenType.COMMENT_LN));
+        }
+
+        if (/[a-z_]/.test(char)) {
+            tokens.push(consumeWord(char, TokenType.TEXT));
+            continue;
+        }
+
+        if (/[0-9]/.test(char)) {
+            tokens.push(consumeWord(char, TokenType.NUMBER));
+            continue;
+        }
+
+        if (/[$]/.test(char)) {
+            tokens.push(consumeWord(char, TokenType.VARIABLE));
+            continue;
+        }
+
+        if (/['"]/.test(char)) {
+            tokens.push(consumeQuotedString(char));
+            continue;
+        }
+
+        if (specialRegex.test(char)) {
+            tokens.push(consumeSpecial(char));
+            continue;
+        }
+
+        tokens.push(consumeWord(char, TokenType.TEXT));
     }
 
-    function pushChunk() {
-        if (thisChunk.length > 0) {
-            chunks.push({
-                type: TokenType.TEXT_CHUNK,
-                text: thisChunk,
-                startIndex: start,
-                endIndex: index() - 1
-            });
+    function shift() {
+        const char = chars.shift();
+        if (!char) return;
 
-            thisChunk = '';
+        if (char === '\n') {
+            ln += 1;
+            col = 1;
+        } else {
+            col += char.length;
         }
-    }
 
-    function consumeComment(): Token {
-        let commentLn = '-';
-
-        let startIndex = index() - 1;
-
-        while (true) {
-            let char = chars.shift();
-
-            if (!char) {
-                return {
-                    type: TokenType.COMMENT,
-                    text: commentLn,
-                    startIndex,
-                    endIndex: index()
-                };
-            }
-
-            if (char === '\n') {
-                return {
-                    type: TokenType.COMMENT,
-                    text: commentLn,
-                    startIndex,
-                    endIndex: index()
-                };
-            }
-
-            commentLn += char;
-        }
-    }
-
-    function consumeCommentBlock(): Token {
-        let start = index();
-
-        let blockText = '';
-
-        while (true) {
-            let char = chars.shift();
-
-            if (!char) {
-                return {
-                    type: TokenType.COMMENT_BLOCK,
-                    text: blockText,
-                    startIndex: start,
-                    endIndex: index()
-                };
-            }
-
-            blockText += char;
-
-            if (char === '*' && chars[0] === '/') {
-                blockText += chars.shift(); // Remove the final '/'
-
-                if (/\s/.test(chars[0])) {
-                    blockText += chars.shift();
-                }
-
-                return {
-                    type: TokenType.COMMENT_BLOCK,
-                    text: blockText,
-                    startIndex: start,
-                    endIndex: index()
-                };
-            }
-        }
-    }
-
-    function consumeDirective(): Token {
-        let directive: string = '@';
-
-        let startIndex = index() - 1;
-
-        while (true) {
-            let char = chars.shift();
-
-            if (!char) {
-                throw new Error('Unexpected end of input.');
-            }
-
-            if (char === ' ') {
-                if (directive === '@statement') {
-                    return consumeBracedDirective(directive + char, startIndex);
-                }
-            }
-
-            directive += char;
-
-            if (char === ';') {
-                return {
-                    type: TokenType.DIRECTIVE,
-                    text: directive,
-                    startIndex,
-                    endIndex: index()
-                };
-            }
-        }
-    }
-
-    function consumeBracedDirective(
-        directive: string,
-        startIndex: number
-    ): Token {
-        let depth = 0;
-
-        while (true) {
-            let char = chars.shift();
-
-            if (!char) {
-                throw new Error('Unexpected end of input.');
-            }
-
-            if (depth === 1 && char === '}') {
-                return {
-                    type: TokenType.DIRECTIVE,
-                    text: directive + char,
-                    startIndex,
-                    endIndex: index()
-                };
-            } else if (char === '}') {
-                depth -= 1;
-            }
-
-            if (char === '{') {
-                depth += 1;
-            }
-
-            directive += char;
-        }
+        return char;
     }
 
     function index() {
-        return text.length - chars.length;
+        return source.length - chars.length;
+    }
+
+    function consumeWhitespace(text: string): Token {
+        const _ln = ln;
+        const _col = col;
+        const _start = start - 1;
+
+        while (true) {
+            let char = shift();
+
+            if (!char || !/\s/.test(char)) {
+                if (char) chars.unshift(char);
+                return {
+                    text,
+                    type: TokenType.WHITESPACE,
+                    ln: _ln,
+                    col: _col,
+                    start: _start,
+                    end: index()
+                };
+            }
+
+            text += char;
+        }
+    }
+
+    function consumeLine(text: string, lineType: TokenType): Token {
+        const _ln = ln;
+        const _col = col;
+        const _start = start - 1;
+
+        while (true) {
+            if (!chars[0] || /\n|\r/.test(chars[0])) {
+                return {
+                    text,
+                    type: lineType,
+                    ln: _ln,
+                    col: _col,
+                    start: _start,
+                    end: index()
+                };
+            }
+
+            text += shift()!;
+        }
+    }
+
+    function consumeWord(text: string, type: TokenType): Token {
+        const _ln = ln;
+        const _col = col;
+        const _start = start - 1;
+
+        while (true) {
+            if (
+                !chars[0] ||
+                /\s/.test(chars[0]) ||
+                specialRegex.test(chars[0])
+            ) {
+                return {
+                    text,
+                    type,
+                    ln: _ln,
+                    col: _col,
+                    start: _start,
+                    end: index()
+                };
+            }
+
+            text += shift()!;
+        }
+    }
+
+    function consumeSpecial(text: string): Token {
+        const _ln = ln;
+        const _col = col;
+        const _start = start - 1;
+
+        while (true) {
+            if (
+                !chars[0] ||
+                /\s/.test(chars[0]) ||
+                !specialRegex.test(chars[0])
+            ) {
+                return {
+                    text,
+                    type: TokenType.PUNCTUATION,
+                    ln: _ln,
+                    col: _col,
+                    start: _start,
+                    end: index()
+                };
+            }
+
+            text += shift()!;
+        }
+    }
+
+    function consumeQuotedString(text: string): Token {
+        const _ln = ln;
+        const _col = col;
+        const _start = start - 1;
+
+        while (true) {
+            const char = shift()!;
+
+            if (!char) {
+                diagnosticMessages.push(
+                    new DiagnosticMessage(
+                        'Unterminated string',
+                        DiagnosticCategory.ERROR,
+                        text,
+                        srcPath,
+                        {
+                            col: _col,
+                            end: index(),
+                            ln: _ln,
+                            start: _start,
+                            text,
+                            type: TokenType.UNKNOWN
+                        }
+                    )
+                );
+
+                return {
+                    text: text,
+                    type: TokenType.STRING,
+                    ln: _ln,
+                    col: _col,
+                    start: _start,
+                    end: index()
+                };
+            }
+
+            text += char;
+
+            if (
+                (text.startsWith('"') && char === '"') ||
+                (text.startsWith("'") && char === "'")
+            ) {
+                return {
+                    text: text,
+                    type: TokenType.STRING,
+                    ln: _ln,
+                    col: _col,
+                    start: _start,
+                    end: index()
+                };
+            }
+        }
     }
 }
