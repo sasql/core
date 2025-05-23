@@ -18,8 +18,9 @@ function parseCommentBlock(block) {
         }
         if (char === '@') {
             const ln = consumeDocTag();
-            if (ln)
+            if (ln) {
                 tagLns.push(ln);
+            }
             continue;
         }
         if (char !== '*' && char !== '/') {
@@ -31,8 +32,9 @@ function parseCommentBlock(block) {
         while (true) {
             let char = chars.shift();
             if (!char || char === '@' || isEndOfBlock(char)) {
-                if (char)
+                if (char) {
                     chars.unshift(char);
+                }
                 return parseDocTagLn(taggedLn);
             }
             taggedLn += char;
@@ -44,8 +46,9 @@ function parseCommentBlock(block) {
 }
 function parseDocTagLn(ln) {
     ln = ln.trim();
-    if (ln.endsWith('*'))
+    if (ln.endsWith('*')) {
         ln = ln.substring(0, ln.length - 2);
+    }
     const tagName = ln.substring(0, ln.indexOf(' '));
     if (tagName === '@param') {
         return parseParamDocTag();

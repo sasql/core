@@ -40,7 +40,7 @@ export function tokenize(text: string) {
 
             if (!char) {
                 return {
-                    startIndex,
+                    startIndex: startIndex,
                     endIndex: index(),
                     text: commentLn
                 };
@@ -48,7 +48,7 @@ export function tokenize(text: string) {
 
             if (char === '\n') {
                 return {
-                    startIndex,
+                    startIndex: startIndex,
                     endIndex: index(),
                     text: commentLn
                 };
@@ -104,7 +104,7 @@ export function tokenize(text: string) {
             }
 
             if (char === ';') {
-                return { startIndex, endIndex: index(), text: directive };
+                return { startIndex: startIndex, endIndex: index(), text: directive };
             }
 
             directive += char;

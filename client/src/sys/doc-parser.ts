@@ -19,7 +19,9 @@ export function parseCommentBlock(block: CommentBlockRaw): CommentBlock {
 
         if (char === '@') {
             const ln = consumeDocTag();
-            if (ln) tagLns.push(ln);
+            if (ln) {
+                tagLns.push(ln);
+            }
             continue;
         }
 
@@ -35,7 +37,9 @@ export function parseCommentBlock(block: CommentBlockRaw): CommentBlock {
             let char = chars.shift();
 
             if (!char || char === '@' || isEndOfBlock(char)) {
-                if (char) chars.unshift(char);
+                if (char) {
+                    chars.unshift(char);
+                }
                 return parseDocTagLn(taggedLn);
             }
 
@@ -51,7 +55,9 @@ export function parseCommentBlock(block: CommentBlockRaw): CommentBlock {
 export function parseDocTagLn(ln: string): DocTaggedLn | undefined {
     ln = ln.trim();
 
-    if (ln.endsWith('*')) ln = ln.substring(0, ln.length - 2);
+    if (ln.endsWith('*')) {
+        ln = ln.substring(0, ln.length - 2);
+    }
 
     const tagName = ln.substring(0, ln.indexOf(' '));
 

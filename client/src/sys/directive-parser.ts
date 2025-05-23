@@ -33,8 +33,8 @@ export function parseDirectives(
 
     directives.forEach((directive) => {
         const directiveText = text.substring(
-            directive.start.character,
-            directive.end.character
+            directive.startIndex,
+            directive.endIndex
         );
 
         if (directiveText.startsWith('-')) {
@@ -61,8 +61,8 @@ export function parseDirectives(
 
             included.push({
                 include: _included,
-                start: directive.start,
-                end: directive.end
+                startIndex: directive.startIndex,
+                endIndex: directive.endIndex
             });
         }
     });
@@ -88,7 +88,9 @@ function parseUseDirective(
     // Resolve the path relative to the src file
     let path = split[1];
     path = path.substring(1, path.length - 1);
-    if (!path.endsWith('.sasql')) path = path + '.sasql';
+    if (!path.endsWith('.sasql')) {
+        path = path + '.sasql';
+    }
 
     const importPath = join(dirname(srcPath), path);
     const importSrc = readFileSync(importPath, 'utf-8');
@@ -98,8 +100,8 @@ function parseUseDirective(
     return {
         sourceFile: importedSource,
         alias,
-        start: directive.start,
-        end: directive.end
+        startIndex: directive.startIndex,
+        endIndex: directive.endIndex
     };
 }
 
@@ -108,8 +110,8 @@ function parseCommentDirective(
     directiveText: string
 ): CommentDirective {
     return {
-        start: directive.start,
-        end: directive.end,
+        startIndex: directive.startIndex,
+        endIndex: directive.endIndex,
         comment: directiveText
     };
 }

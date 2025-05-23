@@ -5,15 +5,9 @@
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "target": "es2017",
-        "lib": [
-            "es2020"
-        ],
+        "lib": ["es2020"],
         "incremental": true,
-        "types": [
-            "node",
-            "jest",
-            "yargs"
-        ],
+        "types": ["node", "jest", "yargs"],
         "sourceMap": true,
         "declaration": true,
         "allowSyntheticDefaultImports": true,
@@ -34,9 +28,7 @@
         "noImplicitOverride": true,
         "noPropertyAccessFromIndexSignature": false,
         "skipLibCheck": true,
-        "resolveJsonModule": true,
+        "resolveJsonModule": true
     },
-    "include": [
-        "src"
-    ]
+    "include": ["src"]
 }

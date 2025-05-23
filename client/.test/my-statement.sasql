@@ -1,0 +1,14 @@
+/**
+ * This is the overall description of the stmt.
+ * @param {string} $1 - The first parameter
+ * @param {string | number} $2 - The second parameter
+ */
+@statement select_from_my_table {
+    SELECT
+        *
+    FROM
+        my_table
+    WHERE
+        column_a = $1
+        AND column_b = $2
+}

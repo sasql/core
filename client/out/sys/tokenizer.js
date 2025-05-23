@@ -31,14 +31,14 @@ function tokenize(text) {
             let char = chars.shift();
             if (!char) {
                 return {
-                    startIndex,
+                    startIndex: startIndex,
                     endIndex: index(),
                     text: commentLn
                 };
             }
             if (char === '\n') {
                 return {
-                    startIndex,
+                    startIndex: startIndex,
                     endIndex: index(),
                     text: commentLn
                 };
@@ -81,7 +81,7 @@ function tokenize(text) {
                 throw new Error('Unexpected end of input.');
             }
             if (char === ';') {
-                return { startIndex, endIndex: index(), text: directive };
+                return { startIndex: startIndex, endIndex: index(), text: directive };
             }
             directive += char;
         }

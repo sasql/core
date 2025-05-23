@@ -1,0 +1,10 @@
+[
+    {
+        "match": "",
+        "name": "punctuation.decorator.sasql"
+    },
+    {
+        "match": "((?<!@)@)(use|include|statement)",
+        "name": "keyword.control.directive.scss"
+    }
+]

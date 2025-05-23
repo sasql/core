@@ -1,0 +1,85 @@
+{
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                "scope": "comment.line",
+                "settings": {
+                    "fontStyle": "italic"
+                }
+            },
+            {
+                "scope": ["keyword.other", "support.function.aggregate.sasql"],
+                "settings": {
+                    "foreground": "#db7c74",
+                    "fontStyle": "bold"
+                }
+            },
+            {
+                "scope": ["source.sasql", "string.quoted.double.sasql"],
+                "settings": {
+                    "foreground": "#7dc9f1"
+                }
+            },
+            {
+                "scope": [
+                    "comment.line.double-dash.sasql",
+                    "constant.numeric.sasql"
+                ],
+                "settings": {
+                    "foreground": "#7ccc5c"
+                }
+            },
+            {
+                "scope": ["string.quoted.single.sasql"],
+                "settings": {
+                    "foreground": "#e4e487"
+                }
+            },
+            {
+                "scope": [
+                    "keyword.operator.comparison.sasql",
+                    "keyword.operator.star.sasql"
+                ],
+                "settings": {
+                    "foreground": "#d6aaaa"
+                }
+            },
+            {
+                "scope": ["comment.block.source.sasql"],
+                "settings": {
+                    "foreground": "#FF0000"
+                }
+            },
+            {
+                "scope": ["punctuation.terminator.statement.sasql"],
+                "settings": {
+                    "foreground": "#919191"
+                }
+            },
+            {
+                "scope": ["punctuation.decorator.sasql"],
+                "settings": {
+                    "foreground": "#ffffff"
+                }
+            },
+            {
+                "scope": ["entity.name.module.sasql"],
+                "settings": {
+                    "foreground": "#4EC9B0"
+                }
+            },
+            {
+                "scope": ["entity.name.statement.sasql"],
+                "settings": {
+                    "foreground": "#DCDCAA"
+                }
+            },
+            {
+                "scope": ["entity.name.alias.sasql"],
+                "settings": {
+                    "foreground": "#7DC9F1"
+                }
+            }
+        ]
+    }
+}

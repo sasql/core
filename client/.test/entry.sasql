@@ -1,0 +1,8 @@
+@use './my-statement' as my_statement;
+
+SELECT
+    *
+FROM
+    (
+        @include my_statement.select_from_my_table;
+    ) as my_sub_stmt;

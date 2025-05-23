@@ -57,8 +57,9 @@ function parseUseDirective(directive, directiveText, srcPath) {
     // Resolve the path relative to the src file
     let path = split[1];
     path = path.substring(1, path.length - 1);
-    if (!path.endsWith('.sasql'))
+    if (!path.endsWith('.sasql')) {
         path = path + '.sasql';
+    }
     const importPath = (0, path_1.join)((0, path_1.dirname)(srcPath), path);
     const importSrc = (0, fs_1.readFileSync)(importPath, 'utf-8');
     const importedSource = (0, parser_1.parseSourceFile)(importSrc, importPath);
