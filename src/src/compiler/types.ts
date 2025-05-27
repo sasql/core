@@ -65,3 +65,73 @@ export declare interface DocTag {
     tagParam?: Token;
     tagDescription?: Token[];
 }
+
+export declare interface Compiler {
+    /** The source text of the .sasql file. */
+    source: string;
+
+    /** The absolute path to the .sasql file. */
+    srcPath: string;
+
+    /** The directive that imports this file. */
+    srcToken?: UseDirective;
+
+    /** Files that this file imports via `@use`. */
+    imports: Record<string, Compiler>;
+
+    /** Files that imported this file via `@use`. */
+    dependants: Compiler[];
+
+    /** Statements declared in this file via `@statement`. */
+    statements: Record<string, StatementDirective>;
+
+    /**
+     * The compiled out. Has a value of `undefined` until
+     * {@link compile} is called.
+     */
+    output: string | undefined;
+
+    /**
+     * {@link output}, formatted. Has value of `undefined` if
+     * {@link compile} hasn't been called or `format` fails.
+     */
+    formatted: string | undefined;
+
+    /** Holds diagnostic messages from entry file and all descendents. */
+    diagnosticMessages: DiagnosticMessage[];
+
+    /** Holds unknown exceptions from entry file and all descendents. */
+    unknownExceptions: unknown[];
+
+    /**
+     * Compiles this file.
+     * @param compileImports `true` if files imported via `@use` should be compiled.
+     */
+    compile(compileChildren?: boolean): CompilerOutput;
+    tokenize(): Token[];
+    parseSrc(tokens: Token[]): ParseResult;
+    resolveImport(
+        alias: string,
+        directive: UseDirective,
+        compile: boolean
+    ): void;
+    resolveInclude(include: IncludeDirective): string;
+    readSrcFile(): void;
+}
+
+export declare interface CompilerOutput {
+    output: string;
+    diagnosticMessages: DiagnosticMessage[];
+    unknownExceptions: unknown[];
+}
+
+export declare interface CompilerProgramOptions {
+    ignoreWhitespace?: boolean;
+    removeComments?: boolean;
+    entrySource?: string;
+}
+
+export declare interface CompilerProgram {
+    compiler: Compiler;
+    compilers: Map<string, Compiler>;
+}

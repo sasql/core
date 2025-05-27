@@ -3,7 +3,7 @@
  * @param {string} $1 - The first parameter
  * @param {string | number} $2 - The second parameter
  */
-@statement select_from_my_table {
+@statement select_from_my_tables {
     SELECT
         *
     FROM

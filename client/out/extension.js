@@ -43,15 +43,14 @@ const create_language_server_1 = require("./create-language-server");
 let client;
 // Called when extension is activated
 function activate(context) {
-    console.log('SASQL extension activated.');
-    // Example command
-    const disposable = vscode.commands.registerCommand('sasql.helloWorld', () => { });
     (0, statement_completion_provider_1.registerStatementCompletionProvider)();
     (0, suggest_directive_names_1.registerDirectiveCompletionProvider)();
     (0, path_completion_provider_1.registerPathCompletionProvider)();
     client = (0, create_language_server_1.createLanguageServer)(context);
     client.start();
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(vscode.commands.registerCommand('sasql.reloadLanguageServer', () => {
+        client.restart();
+    }));
 }
 // This method is called when your extension is deactivated
 function deactivate() {

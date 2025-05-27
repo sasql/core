@@ -1,3 +1,4 @@
+import { statSync } from 'fs';
 import ts from 'typescript';
 
 export namespace sys {
@@ -8,4 +9,6 @@ export namespace sys {
     export const createDirectory = ts.sys.createDirectory;
     export const writeFile = ts.sys.writeFile;
     export const resolvePath = ts.sys.resolvePath;
+    export const isDirectory = (path: string) => statSync(path).isDirectory();
+    export const isNotDirectory = (path: string) => !isDirectory(path);
 }

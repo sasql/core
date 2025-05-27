@@ -4,86 +4,24 @@ import {
     Token,
     IncludeDirective,
     ParseResult,
-    StatementDirective
+    StatementDirective,
+    Compiler,
+    CompilerProgramOptions,
+    CompilerOutput,
+    CompilerProgram
 } from './types.js';
 import { dirname, join } from 'path';
 import { DiagnosticCategory, DiagnosticMessage } from './diagnostic-message.js';
 import { tokenize } from './tokenizer.js';
 import { parse } from './parser.js';
-import { format, FormatOptionsWithLanguage } from 'sql-formatter';
 import { sys } from './sys.js';
-
-export declare interface Compiler {
-    /** The source text of the .sasql file. */
-    source: string;
-
-    /** The absolute path to the .sasql file. */
-    srcPath: string;
-
-    /** The directive that imports this file. */
-    srcToken?: UseDirective;
-
-    /** Files that this file imports via `@use`. */
-    imports: Record<string, Compiler>;
-
-    /** Files that imported this file via `@use`. */
-    dependants: Compiler[];
-
-    /** Statements declared in this file via `@statement`. */
-    statements: Record<string, StatementDirective>;
-
-    /**
-     * The compiled out. Has a value of `undefined` until
-     * {@link compile} is called.
-     */
-    output: string | undefined;
-
-    /**
-     * {@link output}, formatted. Has value of `undefined` if
-     * {@link compile} hasn't been called or `format` fails.
-     */
-    formatted: string | undefined;
-
-    /** Holds diagnostic messages from entry file and all descendents. */
-    diagnosticMessages: DiagnosticMessage[];
-
-    /** Holds unknown exceptions from entry file and all descendents. */
-    unknownExceptions: unknown[];
-
-    /**
-     * Compiles this file.
-     * @param compileImports `true` if files imported via `@use` should be compiled.
-     */
-    compile(compileChildren?: boolean): CompilerOutput;
-    tokenize(): Token[];
-    parseSrc(tokens: Token[]): ParseResult;
-    resolveImport(
-        alias: string,
-        directive: UseDirective,
-        compile: boolean
-    ): void;
-    resolveInclude(include: IncludeDirective): string;
-    readSrcFile(): void;
-}
-
-export declare interface CompilerOutput {
-    output: string;
-    formatted: string;
-    diagnosticMessages: DiagnosticMessage[];
-    unknownExceptions: unknown[];
-}
 
 export function createCompilerProgram(
     entryPath: string,
-    options?: {
-        ignoreWhitespace?: boolean;
-        removeComments?: boolean;
-        entrySource?: string;
-        format?: FormatOptionsWithLanguage;
-    }
-): Compiler {
+    options?: CompilerProgramOptions
+): CompilerProgram {
     /** Holds the source files for entry file and all descendents. */
-    const includes: Record<string, Compiler> = {};
+    const compilers = new Map<string, Compiler>();
 
     class _Compiler implements Compiler {
         public source: string;
@@ -188,22 +126,8 @@ export function createCompilerProgram(
                 })
                 .join(' ');
 
-            try {
-                const formatOptions = options?.format ?? {};
-
-                if (!formatOptions.language) {
-                    formatOptions.language = 'postgresql';
-                }
-
-                this.formatted = format(this.output, formatOptions);
-            } catch (e) {
-                this._onError(e);
-                this.formatted = '';
-            }
-
             return {
                 output: this.output,
-                formatted: this.formatted,
                 diagnosticMessages: this.diagnosticMessages,
                 unknownExceptions: this.unknownExceptions
             };
@@ -282,8 +206,8 @@ export function createCompilerProgram(
             }
 
             // If this imported file has already been compiled--load it
-            if (includes[absolutePath]) {
-                const imported = includes[absolutePath];
+            if (compilers.has(absolutePath)) {
+                const imported = compilers.get(absolutePath)!;
 
                 this.imports[alias] = imported;
 
@@ -309,7 +233,7 @@ export function createCompilerProgram(
             this.imports[alias] = compiler;
 
             // Associate the compiler with the
-            includes[absolutePath] = compiler;
+            compilers.set(absolutePath, compiler);
         }
 
         private _resolveImportPath(lastToken: Token, path: string) {
@@ -380,5 +304,8 @@ export function createCompilerProgram(
         }
     }
 
-    return new _Compiler(entryPath, undefined, options?.entrySource);
+    const compiler = new _Compiler(entryPath, undefined, options?.entrySource);
+    compilers.set(entryPath, compiler);
+
+    return { compiler, compilers };
 }

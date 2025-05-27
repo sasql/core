@@ -1,5 +1,5 @@
 {
-    "name": "@sasql/lib",
+    "name": "@sasql/core",
     "version": "1.0.0",
     "description": "",
     "main": "dist/index.js",
@@ -8,6 +8,7 @@
     "author": "Alexander Porrello",
     "dependencies": {
         "chalk": "^5.3.0",
+        "glob": "^11.0.2",
         "yargs": "^17.7.2"
     },
     "devDependencies": {

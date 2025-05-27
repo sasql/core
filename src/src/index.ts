@@ -1,8 +1,4 @@
-export {
-    type Compiler,
-    type CompilerOutput,
-    createCompilerProgram
-} from './compiler/compiler.js';
+export { createCompilerProgram } from './compiler/compiler.js';
 
 export {
     DiagnosticCategory,
@@ -21,6 +17,16 @@ export type {
     StatementDirective,
     Token,
     TokenType,
-    UseDirective
+    UseDirective,
+    Compiler,
+    CompilerOutput as CompilerProgram,
+    CompilerProgramOptions
 } from './compiler/types.js';
 export { isIncludeDirectiveV2 } from './compiler/types.js';
+export { type Resolver, createResolver } from './compiler/resolver.js';
+export {
+    type SasqlConfig,
+    findProjectConfig,
+    readProjectConfig,
+    resolveProjectFiles
+} from './compiler/config.js';

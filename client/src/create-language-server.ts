@@ -14,19 +14,25 @@ export function createLanguageServer(context: ExtensionContext) {
         'server.js'
     );
 
-    const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
-
     const serverOptions: ServerOptions = {
-        run: { module: serverModule, transport: TransportKind.ipc },
+        run: {
+            module: serverModule,
+            transport: TransportKind.ipc
+        },
         debug: {
             module: serverModule,
             transport: TransportKind.ipc,
-            options: debugOptions
+            options: { execArgv: ['--nolazy', '--inspect=6009'] }
         }
     };
 
     const clientOptions: LanguageClientOptions = {
-        documentSelector: [{ scheme: 'file', language: 'sasql' }],
+        documentSelector: [
+            {
+                scheme: 'file',
+                language: 'sasql'
+            }
+        ],
         synchronize: {
             fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
         }

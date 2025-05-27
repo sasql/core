@@ -10,14 +10,6 @@ let client: LanguageClient;
 
 // Called when extension is activated
 export function activate(context: vscode.ExtensionContext) {
-    console.log('SASQL extension activated.');
-
-    // Example command
-    const disposable = vscode.commands.registerCommand(
-        'sasql.helloWorld',
-        () => {}
-    );
-
     registerStatementCompletionProvider();
     registerDirectiveCompletionProvider();
     registerPathCompletionProvider();
@@ -25,7 +17,11 @@ export function activate(context: vscode.ExtensionContext) {
     client = createLanguageServer(context);
     client.start();
 
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(
+        vscode.commands.registerCommand('sasql.reloadLanguageServer', () => {
+            client.restart();
+        })
+    );
 }
 
 // This method is called when your extension is deactivated

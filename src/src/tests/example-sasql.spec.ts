@@ -1,3 +1,11 @@
+export const sasqlConfig = /*json*/ `
+{
+    "include": [
+        "src/**/*.sasql"
+    ]
+}
+`.trim();
+
 export const subStmtSasql = /*sql*/ `
 /**
  * This is the overall description of the stmt.
@@ -16,7 +24,7 @@ export const subStmtSasql = /*sql*/ `
 `;
 
 export const mainSasql = /*sql*/ `
-@use './my_imported_select' as my_import;
+@use './statements/statement' as my_import;
 
 SELECT
     *
