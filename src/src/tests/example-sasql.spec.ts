@@ -34,6 +34,17 @@ FROM
     ) as my_sub_stmt
 `;
 
+export const errorMainSasql = /*sql*/ `
+@use './statement' as my_import;
+
+SELECT
+    *
+FROM
+    (
+        @include my_import.select_from_my_table;
+    ) as my_sub_stmt
+`;
+
 export const virtualDir = '/home/usr/git/my-project/src/main.sasql';
 export const virtualMainDir = '/home/usr/git/my-project/src/main.sasql';
 

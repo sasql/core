@@ -15,20 +15,24 @@ import { DiagnosticCategory, DiagnosticMessage } from './diagnostic-message.js';
 import { tokenize } from './tokenizer.js';
 import { parse } from './parser.js';
 import { sys } from './sys.js';
+import {
+    findProjectConfig,
+    readProjectConfig,
+    resolveProjectFiles,
+    SasqlConfig
+} from './config.js';
 
 export function createCompilerProgram(
-    entryPath: string,
+    projectRootDir: string,
     options?: CompilerProgramOptions
 ): CompilerProgram {
     /** Holds the source files for entry file and all descendents. */
     const compilers = new Map<string, Compiler>();
 
     class _Compiler implements Compiler {
-        public source: string;
-
         public imports: Record<string, Compiler> = {};
 
-        public dependants: Compiler[] = [];
+        public dependants: Record<string, Compiler> = {};
 
         public statements: Record<string, StatementDirective> = {};
 
@@ -40,73 +44,56 @@ export function createCompilerProgram(
 
         public unknownExceptions: unknown[] = [];
 
+        public initialized = false;
+
         constructor(
             public srcPath: string,
-            public srcToken?: UseDirective,
-            source?: string
-        ) {
-            if (!source) {
-                try {
-                    this.source = this.readSrcFile();
-                } catch (e) {
-                    this._onError(e);
-                    this.source = '';
-                }
-            } else {
-                this.source = source;
-            }
-        }
+            public source: string,
+            public srcToken?: UseDirective
+        ) {}
 
-        readSrcFile() {
-            if (!sys.fileExists(this.srcPath)) {
-                if (this.srcToken) {
-                    throw new DiagnosticMessage(
-                        'Failed to resolve import',
-                        DiagnosticCategory.ERROR,
-                        '',
-                        this.srcPath,
-                        this.srcToken.path
-                    );
-                } else {
-                    throw new Error('Failed to resolve src file.');
-                }
-            }
-
-            const source = sys.readFile(this.srcPath);
-            if (!source) {
-                if (this.srcToken) {
-                    throw new DiagnosticMessage(
-                        'Failed to read file.',
-                        DiagnosticCategory.ERROR,
-                        '',
-                        this.srcPath,
-                        this.srcToken.path
-                    );
-                } else {
-                    throw new Error('Failed to read src file.');
-                }
-            }
-
-            return source;
-        }
-
-        compile(compileImports?: boolean): CompilerOutput {
+        recompile(source?: string): CompilerOutput {
             // Clear diagnostic messages
             this.diagnosticMessages.length = 0;
             this.unknownExceptions.length = 0;
 
+            source ??= sys.readFile(this.srcPath);
+            if (!source) {
+                throw new Error('Source no longer exists');
+            }
+            this.source = source;
+
+            const results = this.compile();
+
+            // Recompile all files that import this file
+            Object.values(this.dependants).forEach((compiler) => {
+                const output = compiler.recompile();
+                this.diagnosticMessages.push(...output.diagnosticMessages);
+                this.unknownExceptions.push(...output.unknownExceptions);
+            });
+
+            return {
+                diagnosticMessages: this.diagnosticMessages,
+                unknownExceptions: this.unknownExceptions,
+                output: results.output
+            };
+        }
+
+        compile(): CompilerOutput {
+            this.initialized = true;
+
             // Tokenize the source text
-            const tokens = this.tokenize();
+            const tokens = this._tokenize();
 
             // Parse the source tokens
-            const { imports, chunks, statements } = this.parseSrc(tokens);
+            const { imports, chunks, statements } = this._parseSrc(tokens);
 
             this.statements = statements;
 
             // Resolve and compile imports
             Object.entries(imports).forEach(([alias, use]) => {
                 try {
-                    this.resolveImport(alias, use, compileImports);
+                    this._resolveImport(alias, use);
                 } catch (e) {
                     this._onError(e);
                 }
@@ -118,7 +105,7 @@ export function createCompilerProgram(
                     if (!isIncludeDirectiveV2(chunk)) return chunk.text;
 
                     try {
-                        return this.resolveInclude(chunk);
+                        return this._resolveInclude(chunk);
                     } catch (e) {
                         this._onError(e);
                         return '';
@@ -133,7 +120,7 @@ export function createCompilerProgram(
             };
         }
 
-        tokenize() {
+        private _tokenize() {
             let tokens: Token[] = [];
 
             if (this.source) {
@@ -154,45 +141,35 @@ export function createCompilerProgram(
             return tokens;
         }
 
-        parseSrc(tokens: Token[]): ParseResult {
-            if (this.source) {
-                try {
-                    const parseResult = parse(
-                        tokens,
-                        this.source,
-                        this.srcPath,
-                        {
-                            removeComments: options?.removeComments ?? true
-                        }
-                    );
+        private _parseSrc(tokens: Token[]): ParseResult {
+            try {
+                const parseResult = parse(tokens, this.source, this.srcPath, {
+                    removeComments: options?.removeComments ?? true
+                });
 
-                    this.diagnosticMessages.push(
-                        ...parseResult.diagnosticMessages
-                    );
-                    this.unknownExceptions.push(
-                        ...parseResult.unknownExceptions
-                    );
+                this.diagnosticMessages.push(...parseResult.diagnosticMessages);
+                this.unknownExceptions.push(...parseResult.unknownExceptions);
 
-                    return parseResult;
-                } catch (e) {
-                    this._onError(e);
-                }
+                return parseResult;
+            } catch (e) {
+                this._onError(e);
             }
 
             return {
                 imports: {},
                 chunks: [],
                 statements: {},
-                diagnosticMessages: [],
-                unknownExceptions: []
+                diagnosticMessages: this.diagnosticMessages,
+                unknownExceptions: this.unknownExceptions
             };
         }
 
-        resolveImport(
-            alias: string,
-            directive: UseDirective,
-            compile = true
-        ): void {
+        //
+        // Import Logic
+        //
+
+        // @todo - resolve circular dependencies
+        private _resolveImport(alias: string, directive: UseDirective): void {
             let absolutePath: string;
 
             try {
@@ -205,11 +182,29 @@ export function createCompilerProgram(
                 return;
             }
 
+            // If this file has already been initialized as an import,
+            // continue
+            if (this.imports[absolutePath]) {
+                this.diagnosticMessages.push(
+                    ...this.imports[absolutePath].diagnosticMessages
+                );
+                this.unknownExceptions.push(
+                    ...this.imports[absolutePath].unknownExceptions
+                );
+                return;
+            }
+
             // If this imported file has already been compiled--load it
             if (compilers.has(absolutePath)) {
                 const imported = compilers.get(absolutePath)!;
 
                 this.imports[alias] = imported;
+                imported.dependants[this.srcPath] = <Compiler>this;
+
+                // If the imported file has not been compiled, compile it
+                if (imported.initialized === false) {
+                    imported.compile();
+                }
 
                 this.diagnosticMessages.push(...imported.diagnosticMessages);
                 this.unknownExceptions.push(...imported.unknownExceptions);
@@ -217,22 +212,40 @@ export function createCompilerProgram(
                 return;
             }
 
+            // This import is not included in the program config,
+            // but it is included by virtue of it being imported
+            const importedSrc = sys.readFile(absolutePath);
+            if (importedSrc === undefined) {
+                throw new DiagnosticMessage(
+                    'Failed to load imported file',
+                    DiagnosticCategory.ERROR,
+                    this.source,
+                    this.srcPath,
+                    directive.path
+                );
+            }
+
             // Compile the imported file
-            const compiler = new _Compiler(absolutePath, directive);
-
-            if (compile) compiler.compile();
-
-            // Reattach the imported file's diagnostic messages
-            this.diagnosticMessages.push(...compiler.diagnosticMessages);
-            this.unknownExceptions.push(...compiler.unknownExceptions);
+            const compiler = new _Compiler(
+                absolutePath,
+                importedSrc,
+                directive
+            );
 
             // Push this as a child of the import
-            compiler.dependants.push(compiler);
+            compiler.dependants[this.srcPath] = this;
 
             // Associate the import with its alias
             this.imports[alias] = compiler;
 
-            // Associate the compiler with the
+            // Compile the imported file
+            compiler.compile();
+
+            // Attach the imported file's diagnostic messages
+            this.diagnosticMessages.push(...compiler.diagnosticMessages);
+            this.unknownExceptions.push(...compiler.unknownExceptions);
+
+            // Register the compiler with this project
             compilers.set(absolutePath, compiler);
         }
 
@@ -263,7 +276,11 @@ export function createCompilerProgram(
             return path;
         }
 
-        resolveInclude(include: IncludeDirective): string {
+        //
+        // Include Logic
+        //
+
+        private _resolveInclude(include: IncludeDirective): string {
             const { import: imported, module } = include;
 
             const resolvedImport = this.imports[module.text];
@@ -295,6 +312,10 @@ export function createCompilerProgram(
                 .join(' ');
         }
 
+        //
+        // Helper Function
+        //
+
         private _onError(e: unknown) {
             if (e instanceof DiagnosticMessage) {
                 this.diagnosticMessages.push(e);
@@ -304,8 +325,43 @@ export function createCompilerProgram(
         }
     }
 
-    const compiler = new _Compiler(entryPath, undefined, options?.entrySource);
-    compilers.set(entryPath, compiler);
+    let projectConfig: SasqlConfig;
 
-    return { compiler, compilers };
+    if (options?.programConfig) {
+        projectConfig = options.programConfig;
+    } else {
+        const projectConfigPath = findProjectConfig(projectRootDir);
+        projectConfig = readProjectConfig(projectConfigPath);
+    }
+
+    const projectFiles = resolveProjectFiles(projectRootDir, projectConfig);
+
+    projectFiles.forEach(({ source, srcPath }) => {
+        if (!source) return;
+        const compiler = new _Compiler(srcPath, source);
+        compilers.set(srcPath, compiler);
+    });
+
+    function compileProject() {
+        let output: Record<string, string> = {};
+        const diagnosticMessages: DiagnosticMessage[] = [];
+        const unknownExceptions: unknown[] = [];
+
+        Array.from(compilers.keys()).forEach((k) => {
+            const result = compilers.get(k)!.compile();
+
+            diagnosticMessages.push(...result.diagnosticMessages);
+            unknownExceptions.push(...result.unknownExceptions);
+
+            output[k] = result.output;
+        });
+
+        return {
+            output,
+            diagnosticMessages,
+            unknownExceptions
+        };
+    }
+
+    return { compilers, compileProject };
 }

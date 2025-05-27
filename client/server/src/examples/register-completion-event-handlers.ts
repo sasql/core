@@ -1,9 +1,9 @@
-import { Connection } from './server.js';
 import {
     CompletionItemKind,
     TextDocumentPositionParams,
     CompletionItem
-} from 'vscode-languageserver';
+} from 'vscode-languageserver/node.js';
+import type { Connection } from '../server.js';
 
 export function registerCompletionEventHandlers(connection: Connection) {
     // Provides the initial list of the completion items.

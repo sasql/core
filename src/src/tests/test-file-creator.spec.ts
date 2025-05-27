@@ -1,28 +1,32 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
-import { mainSasql, sasqlConfig, subStmtSasql } from './example-sasql.spec.js';
+import {
+    errorMainSasql,
+    mainSasql,
+    sasqlConfig,
+    subStmtSasql
+} from './example-sasql.spec.js';
 
-const rootDir = resolve('.test');
+export const rootDir = resolve('.test');
+const srcDir = join(rootDir, 'src');
+const stmtsDir = join(srcDir, 'statements');
+const configPath = join(rootDir, 'sasqlconfig.json');
+const mainPath = join(srcDir, 'main.sasql');
+const stmtsPath = join(stmtsDir, 'statement.sasql');
 
-export function createTestProject() {
-    const srcDir = join(rootDir, 'src');
-    const stmtsDir = join(srcDir, 'statements');
-
+export function createTestProject(writeErrored = false) {
     if (!existsSync(stmtsDir)) {
         mkdirSync(stmtsDir, { recursive: true });
     }
 
-    const configPath = join(rootDir, 'sasqlconfig.json');
     if (!existsSync(configPath)) {
         writeFileSync(configPath, sasqlConfig);
     }
 
-    const mainPath = join(srcDir, 'main.sasql');
     if (!existsSync(mainPath)) {
-        writeFileSync(mainPath, mainSasql);
+        writeFileSync(mainPath, writeErrored ? errorMainSasql : mainSasql);
     }
 
-    const stmtsPath = join(stmtsDir, 'statement.sasql');
     if (!existsSync(stmtsPath)) {
         writeFileSync(stmtsPath, subStmtSasql);
     }

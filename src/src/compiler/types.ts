@@ -1,5 +1,6 @@
 import type { Range } from 'vscode-languageserver';
 import { DiagnosticMessage } from './diagnostic-message.js';
+import { SasqlConfig } from './config.js';
 
 export declare interface Position {
     startIndex: number;
@@ -76,11 +77,8 @@ export declare interface Compiler {
     /** The directive that imports this file. */
     srcToken?: UseDirective;
 
-    /** Files that this file imports via `@use`. */
-    imports: Record<string, Compiler>;
-
     /** Files that imported this file via `@use`. */
-    dependants: Compiler[];
+    dependants: Record<string, Compiler>;
 
     /** Statements declared in this file via `@statement`. */
     statements: Record<string, StatementDirective>;
@@ -103,20 +101,16 @@ export declare interface Compiler {
     /** Holds unknown exceptions from entry file and all descendents. */
     unknownExceptions: unknown[];
 
+    /** Has this file been compiled? */
+    initialized: boolean;
+
     /**
      * Compiles this file.
      * @param compileImports `true` if files imported via `@use` should be compiled.
      */
-    compile(compileChildren?: boolean): CompilerOutput;
-    tokenize(): Token[];
-    parseSrc(tokens: Token[]): ParseResult;
-    resolveImport(
-        alias: string,
-        directive: UseDirective,
-        compile: boolean
-    ): void;
-    resolveInclude(include: IncludeDirective): string;
-    readSrcFile(): void;
+    compile(compileImports?: boolean): CompilerOutput;
+
+    recompile(source?: string): CompilerOutput;
 }
 
 export declare interface CompilerOutput {
@@ -129,9 +123,14 @@ export declare interface CompilerProgramOptions {
     ignoreWhitespace?: boolean;
     removeComments?: boolean;
     entrySource?: string;
+    programConfig?: SasqlConfig;
 }
 
 export declare interface CompilerProgram {
-    compiler: Compiler;
     compilers: Map<string, Compiler>;
+    compileProject: () => {
+        output: Record<string, string>;
+        diagnosticMessages: DiagnosticMessage[];
+        unknownExceptions: unknown[];
+    };
 }

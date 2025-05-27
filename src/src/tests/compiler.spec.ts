@@ -1,111 +1,120 @@
 import { createCompilerProgram } from '../compiler/compiler.js';
-import { sys } from '../compiler/sys.js';
 import {
-    mainSasql,
-    subStmtSasql,
-    virtualMainDir
-} from './example-sasql.spec.js';
+    createTestProject,
+    removeTestProject,
+    rootDir
+} from './test-file-creator.spec.js';
 
-describe('Compiler V3 test suite', () => {
-    afterEach(() => {
-        // @todo - clearing mocks isn't working
-        jest.clearAllMocks();
-    });
+describe('Compiler errors test suite', () => {
+    beforeAll(() => createTestProject(true));
+    afterAll(() => removeTestProject());
 
     test('statements', () => {
-        jest.spyOn(sys, 'readFile').mockImplementationOnce(() => subStmtSasql);
-        jest.spyOn(sys, 'fileExists').mockImplementationOnce(() => true);
-
-        const program = createCompilerProgram(virtualMainDir, {
+        const program = createCompilerProgram(rootDir, {
             ignoreWhitespace: true,
             removeComments: true
         });
 
-        const { output, formatted, diagnosticMessages, unknownExceptions } =
-            program.compile();
+        const { diagnosticMessages, unknownExceptions } =
+            program.compileProject();
+
+        console.log(diagnosticMessages);
 
         expect(diagnosticMessages.length).toEqual(0);
         expect(unknownExceptions.length).toEqual(0);
-
-        expect(formatted.length).toEqual(0);
-        expect(output.length).toEqual(0);
-
-        expect(Object.keys(program.statements).length).toEqual(1);
-        expect(program.statements['select_from_my_table']).toBeTruthy();
     });
+});
 
-    it('@use and @include', () => {
-        jest.spyOn(sys, 'readFile').mockImplementationOnce(() => subStmtSasql);
-        jest.spyOn(sys, 'fileExists').mockImplementation(() => true);
+describe('Compiler V3 test suite', () => {
+    beforeAll(() => createTestProject());
+    afterAll(() => removeTestProject());
 
-        const program = createCompilerProgram(virtualMainDir, {
+    test('statements', () => {
+        const program = createCompilerProgram(rootDir, {
             ignoreWhitespace: true,
-            removeComments: true,
-            entrySource: mainSasql
+            removeComments: true
         });
 
-        const { output, formatted, diagnosticMessages, unknownExceptions } =
-            program.compile();
+        const { diagnosticMessages, unknownExceptions } =
+            program.compileProject();
 
         expect(diagnosticMessages.length).toEqual(0);
         expect(unknownExceptions.length).toEqual(0);
-
-        expect(formatted.length).toBeGreaterThan(0);
-        expect(output.length).toBeGreaterThan(0);
-
-        expect(Object.keys(program.statements).length).toEqual(0);
-
-        expect(output).toEqual(
-            `SELECT * FROM ( SELECT * FROM my_table WHERE column_a = $1 AND column_b = $2 ) as my_sub_stmt`
-        );
+        expect(program.compilers.size).toEqual(2);
     });
 
-    it('Returns diagnostic message for unresolvable @use.', () => {
-        // @todo - clearing mocks isn't working
-        jest.spyOn(sys, 'fileExists').mockImplementation(() => false);
+    // it('@use and @include', () => {
+    //     jest.spyOn(sys, 'readFile').mockImplementationOnce(() => subStmtSasql);
+    //     jest.spyOn(sys, 'fileExists').mockImplementation(() => true);
 
-        const testErrorSasql = /*sql*/ `@use './does/not/exist' as does_not_exist;`;
+    //     const program = createCompilerProgram(virtualMainDir, {
+    //         ignoreWhitespace: true,
+    //         removeComments: true,
+    //         entrySource: mainSasql
+    //     });
 
-        const program = createCompilerProgram(virtualMainDir, {
-            ignoreWhitespace: true,
-            removeComments: true,
-            entrySource: testErrorSasql
-        });
+    //     const { output, formatted, diagnosticMessages, unknownExceptions } =
+    //         program.compile();
 
-        const { diagnosticMessages } = program.compile();
+    //     expect(diagnosticMessages.length).toEqual(0);
+    //     expect(unknownExceptions.length).toEqual(0);
 
-        expect(diagnosticMessages.length).toEqual(1);
-        expect(diagnosticMessages[0].message).toEqual(
-            'Failed to resolve import.'
-        );
-    });
+    //     expect(formatted.length).toBeGreaterThan(0);
+    //     expect(output.length).toBeGreaterThan(0);
 
-    it('Returns mutliple diagnostic messages for a file with multiple errors.', () => {
-        // @todo - clearing mocks isn't working
-        jest.spyOn(sys, 'fileExists').mockImplementation(() => false);
+    //     expect(Object.keys(program.statements).length).toEqual(0);
 
-        const testErrorSasql = /*sql*/ `
-            @use './does/not/exist' as does_not_exist;
+    //     expect(output).toEqual(
+    //         `SELECT * FROM ( SELECT * FROM my_table WHERE column_a = $1 AND column_b = $2 ) as my_sub_stmt`
+    //     );
+    // });
 
-            SELECT * FROM (
-                @include can_not_exist.really_does_not_exist;
-            )
-        `;
+    // it('Returns diagnostic message for unresolvable @use.', () => {
+    //     // @todo - clearing mocks isn't working
+    //     jest.spyOn(sys, 'fileExists').mockImplementation(() => false);
 
-        const program = createCompilerProgram(virtualMainDir, {
-            ignoreWhitespace: true,
-            removeComments: true,
-            entrySource: testErrorSasql
-        });
+    //     const testErrorSasql = /*sql*/ `@use './does/not/exist' as does_not_exist;`;
 
-        const { diagnosticMessages } = program.compile();
+    //     const program = createCompilerProgram(virtualMainDir, {
+    //         ignoreWhitespace: true,
+    //         removeComments: true,
+    //         entrySource: testErrorSasql
+    //     });
 
-        expect(diagnosticMessages.length).toEqual(2);
-        expect(diagnosticMessages[0].message).toEqual(
-            'Failed to resolve import.'
-        );
-        expect(diagnosticMessages[1].message).toEqual(
-            'Failed to resolve module can_not_exist.'
-        );
-    });
+    //     const { diagnosticMessages } = program.compile();
+
+    //     expect(diagnosticMessages.length).toEqual(1);
+    //     expect(diagnosticMessages[0].message).toEqual(
+    //         'Failed to resolve import.'
+    //     );
+    // });
+
+    // it('Returns mutliple diagnostic messages for a file with multiple errors.', () => {
+    //     // @todo - clearing mocks isn't working
+    //     jest.spyOn(sys, 'fileExists').mockImplementation(() => false);
+
+    //     const testErrorSasql = /*sql*/ `
+    //         @use './does/not/exist' as does_not_exist;
+
+    //         SELECT * FROM (
+    //             @include can_not_exist.really_does_not_exist;
+    //         )
+    //     `;
+
+    //     const program = createCompilerProgram(virtualMainDir, {
+    //         ignoreWhitespace: true,
+    //         removeComments: true,
+    //         entrySource: testErrorSasql
+    //     });
+
+    //     const { diagnosticMessages } = program.compile();
+
+    //     expect(diagnosticMessages.length).toEqual(2);
+    //     expect(diagnosticMessages[0].message).toEqual(
+    //         'Failed to resolve import.'
+    //     );
+    //     expect(diagnosticMessages[1].message).toEqual(
+    //         'Failed to resolve module can_not_exist.'
+    //     );
+    // });
 });

@@ -1,39 +1,52 @@
 import {
+    _Connection,
     createConnection,
     ProposedFeatures
 } from 'vscode-languageserver/node.js';
+import { URI } from 'vscode-uri';
+import { CompilerProgram, createCompilerProgram } from '@sasql/core';
 
-import { registerCompletionEventHandlers } from './register-completion-event-handlers.js';
-import { registerConfigEventHandlers } from './register-config-event-handlers.js';
-import { registerDocumentEventHandlers } from './register-document-event-handlers.js';
-import { registerFileWatcherEventHandler } from './register-file-watcher-event-handler.js';
-import { configFound, onInit } from './register-init-event-handlers.js';
+import { registerDocumentEventHandlers } from './handlers/register-document-event-handlers.js';
+import { registerInitEvents } from './handlers/init.js';
+import { resolveSasqlProjectConfig } from './resolve-sasql-project-config.js';
+import { compileSasqlProgram } from './document-handlers/compile-program.js';
+import { registerCompletionEventHandlers } from './examples/register-completion-event-handlers.js';
 
-import type { Settings } from './types.js';
+export let compilerProgram: CompilerProgram | null = null;
 
-export const connection = createConnection(ProposedFeatures.all);
+export const connection: Connection = createConnection(ProposedFeatures.all);
+// prettier-ignore
+export declare type Connection = _Connection<any, any, any, any, any, any, any, any>;
 
-export declare type Connection = typeof connection;
+registerInitEvents(connection, (params) => {
+    if (!params.workspaceFolders) {
+        throw new Error('Extension not given access to workspace folders.');
+    }
 
-// The global settings, used when the `workspace/configuration` request
-// is not supported by the client.
-export const defaultSettings: Settings = { maxNumberOfProblems: 1000 };
-export let globalSettings: Settings = defaultSettings;
+    const projectConfigs = resolveSasqlProjectConfig(
+        params.workspaceFolders.map((folder) => {
+            return URI.parse(folder.uri).fsPath;
+        })
+    );
 
-configFound.on('configUrl', () => {});
+    if (projectConfigs.length > 1) {
+        throw new Error(
+            'SASQL extension does not yet support multi-project workspaces.'
+        );
+    }
 
-onInit(connection);
+    compilerProgram = createCompilerProgram(projectConfigs[0].rootDir, {
+        ignoreWhitespace: true,
+        removeComments: true,
+        programConfig: projectConfigs[0].config
+    });
+});
 
-const { documentSettings, documents } = registerDocumentEventHandlers();
-
-registerConfigEventHandlers(
-    connection,
-    documentSettings,
-    globalSettings,
-    defaultSettings
-);
-registerCompletionEventHandlers(connection);
-registerFileWatcherEventHandler(connection);
+const { documents } = registerDocumentEventHandlers();
 
 documents.listen(connection);
 connection.listen();
+
+registerCompletionEventHandlers(connection);
+
+compileSasqlProgram();

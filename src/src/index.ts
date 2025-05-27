@@ -19,7 +19,7 @@ export type {
     TokenType,
     UseDirective,
     Compiler,
-    CompilerOutput as CompilerProgram,
+    CompilerProgram,
     CompilerProgramOptions
 } from './compiler/types.js';
 export { isIncludeDirectiveV2 } from './compiler/types.js';

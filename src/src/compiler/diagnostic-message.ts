@@ -24,8 +24,14 @@ export class DiagnosticMessage extends Error {
 
         this.tokenText = lastToken.text;
         this.range = {
-            start: lastToken.start,
-            end: lastToken.end
+            start: {
+                character: lastToken.start.character - 1,
+                line: lastToken.start.line - 1
+            },
+            end: {
+                character: lastToken.end.character - 1,
+                line: lastToken.end.line - 1
+            }
         };
         this.position = {
             startIndex: lastToken.startIndex,
