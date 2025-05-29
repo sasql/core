@@ -12,62 +12,41 @@
 			"include": "#comments"
 		},
 		{
-			"match": "(@param)\\s+({[^}]*})\\s+([\\$a-zA-Z0-9_]+)(?:\\s+-\\s+(.*))?",
-			"name": "comment.line.double-dash.sql.documentation",
-			"captures": {
-				"1": {
-					"name": "storage.type.class.jsdoc"
-				},
-				"2": {
-					"name": "entity.name.type.instance.jsdoc"
-				},
-				"3": {
-					"name": "variable.parameter.jsdoc"
-				},
-				"4": {
-					"name": "comment.line.description.jsdoc"
-				}
-			}
-		},
-		{
 			"match": "((?<!@)@use)\\s+(['\"](.*?)['\"])\\s+(as)\\s+([a-zA-Z0-9_\\-]+)(;)",
-			"name": "keyword.control.use.specific",
+			"name": "keyword.control.use.specific.sasql",
 			"captures": {
 				"1": {
 					"name": "keyword.control.directive.use.sasql"
 				},
 				"2": {
-					"name": "string.quoted.module.path.sasql"
+					"name": "string.quoted.directive.use.path.sasql"
 				},
 				"3": {
-					"name": "entity.name.module.path.sasql"
+					"name": "keyword.control.directive.as.sasql"
 				},
 				"4": {
-					"name": "keyword.control.as.sasql"
+					"name": "entity.name.import.sasql"
 				},
 				"5": {
-					"name": "entity.name.module.sasql"
-				},
-				"6": {
 					"name": "punctuation.terminator.directive.sasql"
 				}
 			}
 		},
 		{
 			"match": "((?<!@)@include)\\s+([a-zA-Z0-9_\\-]+)(\\.)([a-zA-Z0-9_\\-]+)(;)",
-			"name": "keyword.control.include.specific",
+			"name": "keyword.control.include.imported.specific.sasql",
 			"captures": {
 				"1": {
 					"name": "keyword.control.directive.include.sasql"
 				},
 				"2": {
-					"name": "entity.name.module.sasql"
+					"name": "entity.name.import.sasql"
 				},
 				"3": {
-					"name": "punctuation.accessor.sasql"
+					"name": "punctuation.accessor.directive.sasql"
 				},
 				"4": {
-					"name": "entity.name.statement.sasql"
+					"name": "entity.name.function.sasql"
 				},
 				"5": {
 					"name": "punctuation.terminator.directive.sasql"
@@ -76,7 +55,7 @@
 		},
 		{
 			"match": "((?<!@)@include)\\s+([a-zA-Z0-9_\\-]+)(;)",
-			"name": "keyword.control.include.specific",
+			"name": "keyword.control.include.local.specific.sasql",
 			"captures": {
 				"1": {
 					"name": "keyword.control.directive.include.sasql"
@@ -91,10 +70,10 @@
 		},
 		{
 			"match": "((?<!@)@statement)\\s+([a-zA-Z0-9_\\-]+)",
-			"name": "keyword.control.statement.specific",
+			"name": "keyword.control.statement.specific.sasql",
 			"captures": {
 				"1": {
-					"name": "punctuation.definition.directive.sasql"
+					"name": "keyword.control.directive.statement.sasql"
 				},
 				"2": {
 					"name": "entity.name.statement.sasql"
@@ -103,22 +82,8 @@
 		},
 		{
 			"match": "((?<!@)@(use|include|statement))",
-			"name": "keyword.control.directive.sasql"
-		},
-		{
-			"captures": {
-				"1": {
-					"name": "keyword.other.create.sasql"
-				},
-				"2": {
-					"name": "keyword.other.sasql"
-				},
-				"5": {
-					"name": "entity.name.function.sasql"
-				}
-			},
-			"match": "(?i:^\\s*(create(?:\\s+or\\s+replace)?)\\s+(aggregate|conversion|database|domain|function|group|(unique\\s+)?index|language|operator class|operator|rule|schema|sequence|table|tablespace|trigger|type|user|view)\\s+)(['\"`]?)(\\w+)\\4",
-			"name": "meta.create.sasql"
+			"name": "keyword.control.directive.specific.sasql",
+			"captures": {}
 		},
 		{
 			"captures": {
