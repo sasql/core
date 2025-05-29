@@ -1,15 +1,18 @@
 // @ts-check
 
 import { writeFileSync } from 'fs';
-import { languageMeta } from './parts/meta.js';
-import { patterns, patternsTop } from './parts/patterns.js';
-import { repository } from './parts/repository.js';
-import { getSasqlSyntax } from './sasql.js';
 import { join } from 'path';
 
+import { patterns } from './patterns/index.js';
+import { repository } from './repository/index.js';
+
 const tmLanguageJson = {
-    ...languageMeta,
-    patterns: [...patternsTop, ...getSasqlSyntax(), ...patterns],
+    $schema:
+        'https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json',
+    version: '0.0.1',
+    name: 'SASQL',
+    scopeName: 'source.sasql',
+    patterns,
     repository
 };
 

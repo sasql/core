@@ -26,7 +26,7 @@ function name(name) {
 function at(name) {
     return {
         name: `keyword.control.directive.${name}.sasql`,
-        regex: ['((?<!@)', name, ')'].join('')
+        regex: ['((?<!@)@', name, ')'].join('')
     };
 }
 
@@ -72,6 +72,10 @@ const directiveSyntax = [
         /** ` @use | @include | @statement ` */
         name: 'meta.directive.sasql',
         captures: [{ regex: '((?<!@)@(use|include|statement))' }]
+    },
+    {
+        name: 'variable.parameter.sasql',
+        captures: [{ regex: '(\\$[0-9]*)' }]
     }
 ];
 

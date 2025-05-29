@@ -1,14 +1,14 @@
-export const patternsTop = [
+import { getSasqlSyntax } from './sasql.js';
+
+export const patterns = [
     {
         match: '(\\[)[^\\]]*(\\])',
         name: 'text.bracketed'
     },
     {
         include: '#comments'
-    }
-];
-
-export const patterns = [
+    },
+    ...getSasqlSyntax(),
     {
         captures: {
             1: {

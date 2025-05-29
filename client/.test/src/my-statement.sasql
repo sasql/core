@@ -1,7 +1,7 @@
 /**
  * This is the overall description of the stmt.
- * @param {string} $1 - The first parameter
- * @param {string | number} $2 - The second parameter
+ * @param {string} $1 The first parameter
+ * @param {string | number} $2 The second parameter
  */
 @statement select_from_my_table {
     SELECT
