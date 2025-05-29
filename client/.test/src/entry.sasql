@@ -7,8 +7,6 @@
     SELECT * FROM foo.bar
 }
 
-@include test_stmt;
-
 SELECT
     *
 FROM
