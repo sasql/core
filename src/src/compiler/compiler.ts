@@ -8,7 +8,8 @@ import {
     Compiler,
     CompilerProgramOptions,
     CompilerOutput,
-    CompilerProgram
+    CompilerProgram,
+    RecompileOutput
 } from './types.js';
 import { dirname, join } from 'path';
 import { DiagnosticCategory, DiagnosticMessage } from './diagnostic-message.js';
@@ -52,7 +53,7 @@ export function createCompilerProgram(
             public srcToken?: UseDirective
         ) {}
 
-        recompile(source?: string): CompilerOutput {
+        recompile(source?: string): RecompileOutput {
             // Clear diagnostic messages
             this.diagnosticMessages.length = 0;
             this.unknownExceptions.length = 0;
@@ -65,17 +66,21 @@ export function createCompilerProgram(
 
             const results = this.compile();
 
+            const recompiled: {
+                [fsPath: string]: CompilerOutput;
+            } = {};
+
             // Recompile all files that import this file
             Object.values(this.dependants).forEach((compiler) => {
                 const output = compiler.recompile();
-                this.diagnosticMessages.push(...output.diagnosticMessages);
-                this.unknownExceptions.push(...output.unknownExceptions);
+                recompiled[compiler.srcPath] = output;
             });
 
             return {
                 diagnosticMessages: this.diagnosticMessages,
                 unknownExceptions: this.unknownExceptions,
-                output: results.output
+                output: results.output,
+                recompiled
             };
         }
 

@@ -28,24 +28,29 @@ export function compileSasqlProgram(document?: TextDocument) {
     const path = uriToFilePath(document.uri);
 
     if (!compilerProgram.compilers.has(path)) {
-        console.error('THIS PATH DOES NOT EXIST, DANGIT');
         return;
     }
 
     const compiler = compilerProgram.compilers.get(path)!;
-    const { diagnosticMessages, unknownExceptions } = compiler.recompile(
-        document.getText()
-    );
+    const { diagnosticMessages, unknownExceptions, recompiled } =
+        compiler.recompile(document.getText());
 
-    console.log(
-        diagnosticMessages.map((m) => m.range),
-        unknownExceptions
+    Object.entries(recompiled).forEach(
+        ([fsPath, { diagnosticMessages, unknownExceptions }]) => {
+            if (diagnosticMessages.length === 0) {
+                connection.sendDiagnostics({
+                    uri: uriToFilePath(fsPath),
+                    diagnostics: []
+                });
+            } else {
+                sendDiagnostics(unknownExceptions, diagnosticMessages);
+            }
+        }
     );
 
     if (diagnosticMessages.length === 0) {
-        console.log(URI.file(path).toString());
         connection.sendDiagnostics({
-            uri: URI.file(path).toString(),
+            uri: uriToFilePath(path),
             diagnostics: []
         });
     } else {
@@ -86,4 +91,8 @@ function sendDiagnostics(
 
 export function uriToFilePath(uri: string) {
     return URI.parse(uri).fsPath;
+}
+
+export function filePathToUri(fsPath: string) {
+    return URI.file(fsPath).toString();
 }

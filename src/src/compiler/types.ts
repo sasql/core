@@ -113,13 +113,19 @@ export declare interface Compiler {
      */
     compile(compileImports?: boolean): CompilerOutput;
 
-    recompile(source?: string): CompilerOutput;
+    recompile(source?: string): RecompileOutput;
 }
 
 export declare interface CompilerOutput {
     output: string;
     diagnosticMessages: DiagnosticMessage[];
     unknownExceptions: unknown[];
+}
+
+export declare interface RecompileOutput extends CompilerOutput {
+    recompiled: {
+        [fsPath: string]: CompilerOutput;
+    };
 }
 
 export declare interface CompilerProgramOptions {

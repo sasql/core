@@ -28,6 +28,12 @@ export function parse(
     const diagnosticMessages: DiagnosticMessage[] = [];
     const unknownExceptions: unknown[] = [];
 
+    const tokenMap: {
+        [line: number]: {
+            [character: number]: Token;
+        };
+    } = {};
+
     while (true) {
         let token = tokens.shift();
         if (!token) {
@@ -43,6 +49,7 @@ export function parse(
         if (token.type === TokenType.COMMENT_LN) {
             if (removeComments === false) {
                 chunks.push(token);
+                cacheTokenPosn(token);
             }
             continue;
         }
@@ -62,6 +69,12 @@ export function parse(
         }
 
         chunks.push(token);
+        cacheTokenPosn(token);
+    }
+
+    function cacheTokenPosn(token: Token) {
+        tokenMap[token.start.line - 1] ??= {};
+        tokenMap[token.start.line - 1][token.start.character - 1] = token;
     }
 
     function parseDirective(token: Token, commentBlock?: any) {
