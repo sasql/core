@@ -39,7 +39,7 @@ export declare interface UseDirective {
 }
 
 export declare interface IncludeDirective {
-    module: Token;
+    module: Token | 'this';
     import: Token;
 }
 
@@ -76,6 +76,9 @@ export declare interface Compiler {
 
     /** The directive that imports this file. */
     srcToken?: UseDirective;
+
+    /** Files imported by this file. */
+    imports: Record<string, Compiler>;
 
     /** Files that imported this file via `@use`. */
     dependants: Record<string, Compiler>;

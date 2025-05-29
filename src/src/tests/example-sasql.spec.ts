@@ -54,3 +54,11 @@ FROM
 (
     @include my_import.select_from_my_table;
 ) as my_sub_stmt`;
+
+export const withLocalModule = /*sql*/ `
+    @statement my_statement {
+        SELECT * FROM my_schema.my_table
+    }
+
+    @include my_statement;
+`;

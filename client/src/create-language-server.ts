@@ -23,6 +23,9 @@ export function createLanguageServer(context: ExtensionContext) {
             module: serverModule,
             transport: TransportKind.ipc,
             options: { execArgv: ['--nolazy', '--inspect=6009'] }
+        },
+        options: {
+            
         }
     };
 

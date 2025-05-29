@@ -1,18 +1,15 @@
 import * as vscode from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
 
-import { registerStatementCompletionProvider } from './providers/statement-completion-provider';
-import { registerDirectiveCompletionProvider } from './providers/suggest-directive-names';
-import { registerPathCompletionProvider } from './providers/path-completion-provider';
 import { createLanguageServer } from './create-language-server';
 
 let client: LanguageClient;
 
 // Called when extension is activated
 export function activate(context: vscode.ExtensionContext) {
-    registerStatementCompletionProvider();
-    registerDirectiveCompletionProvider();
-    registerPathCompletionProvider();
+    // registerStatementCompletionProvider();
+    // registerDirectiveCompletionProvider();
+    // registerPathCompletionProvider();
 
     client = createLanguageServer(context);
     client.start();

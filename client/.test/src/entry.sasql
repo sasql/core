@@ -1,5 +1,14 @@
 @use './my-statement' as my_statement;
 
+/**
+ * This is another test stmt
+ */
+@statement test_stmt { 
+    SELECT * FROM foo.bar
+}
+
+@include test_stmt;
+
 SELECT
     *
 FROM

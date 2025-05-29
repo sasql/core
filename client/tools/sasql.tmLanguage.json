@@ -12,77 +12,77 @@
             "include": "#comments"
         },
         {
-            "match": "((?<!@)@use)\\s+(['\"].*?['\"])\\s+(as)\\s+([a-zA-Z0-9_\\-]+)(;)",
-            "name": "meta.directive.use.sasql",
+            "match": "((?<!@)@use)\\s+(['\"](.*?)['\"])\\s+(as)\\s+([a-zA-Z0-9_\\-]+)(;)",
+            "name": "keyword.control.use.specific.sasql",
             "captures": {
                 "1": {
                     "name": "keyword.control.directive.use.sasql"
                 },
                 "2": {
-                    "name": "string.quoted.single"
+                    "name": "string.quoted.directive.use.path.sasql"
                 },
                 "3": {
                     "name": "keyword.control.directive.as.sasql"
                 },
                 "4": {
-                    "name": "entity.name.namespace.import.sasql"
+                    "name": "entity.name.import.sasql"
                 },
                 "5": {
-                    "name": "punctuation.terminator.sasql"
+                    "name": "punctuation.terminator.directive.sasql"
                 }
             }
         },
         {
             "match": "((?<!@)@include)\\s+([a-zA-Z0-9_\\-]+)(\\.)([a-zA-Z0-9_\\-]+)(;)",
-            "name": "meta.directive.include.sasql",
+            "name": "keyword.control.include.imported.specific.sasql",
             "captures": {
                 "1": {
                     "name": "keyword.control.directive.include.sasql"
                 },
                 "2": {
-                    "name": "entity.name.namespace.import.sasql"
+                    "name": "entity.name.import.sasql"
                 },
                 "3": {
-                    "name": "punctuation.separator.sasql"
+                    "name": "punctuation.accessor.directive.sasql"
                 },
                 "4": {
-                    "name": "entity.name.function.statement.sasql"
+                    "name": "entity.name.statement.sasql"
                 },
                 "5": {
-                    "name": "punctuation.terminator.sasql"
+                    "name": "punctuation.terminator.directive.sasql"
                 }
             }
         },
         {
             "match": "((?<!@)@include)\\s+([a-zA-Z0-9_\\-]+)(;)",
-            "name": "meta.directive.include.sasql",
+            "name": "keyword.control.include.local.specific.sasql",
             "captures": {
                 "1": {
                     "name": "keyword.control.directive.include.sasql"
                 },
                 "2": {
-                    "name": "entity.name.function.statement.sasql"
+                    "name": "entity.name.statement.sasql"
                 },
                 "3": {
-                    "name": "punctuation.terminator.sasql"
+                    "name": "punctuation.terminator.directive.sasql"
                 }
             }
         },
         {
             "match": "((?<!@)@statement)\\s+([a-zA-Z0-9_\\-]+)",
-            "name": "meta.directive.statement.sasql",
+            "name": "keyword.control.statement.specific.sasql",
             "captures": {
                 "1": {
-                    "name": "keyword.control.directive.use.sasql"
+                    "name": "keyword.control.directive.statement.sasql"
                 },
                 "2": {
-                    "name": "entity.name.function.statement.sasql"
+                    "name": "entity.name.statement.sasql"
                 }
             }
         },
         {
             "match": "((?<!@)@(use|include|statement))",
-            "name": "meta.directive.at-rule.sasql",
+            "name": "keyword.control.directive.specific.sasql",
             "captures": {}
         },
         {

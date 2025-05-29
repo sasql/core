@@ -5,13 +5,15 @@ import {
     mainSasql,
     subStmtSasql,
     virtualDir,
-    virtualMainDir
+    virtualMainDir,
+    withLocalModule
 } from './example-sasql.spec.js';
+import { expect2 } from './util.spec.js';
 
 describe('Parser V2 test suite.', () => {
     test('Can parse sasql with statement declaration', () => {
         const { tokens } = tokenize(subStmtSasql, virtualDir, {
-            ignoreWhitespace: false
+            ignoreWhitespace: true
         });
         const parsed = parse(tokens, subStmtSasql, virtualDir);
 
@@ -45,15 +47,16 @@ describe('Parser V2 test suite.', () => {
 
     test('Can parse sasql with @use and @include directives', () => {
         const { tokens } = tokenize(mainSasql, virtualMainDir, {
-            ignoreWhitespace: false
+            ignoreWhitespace: true
         });
+
         const { chunks, imports, statements } = parse(
             tokens,
             mainSasql,
             virtualMainDir
         );
 
-        expect(chunks.length).toEqual(9);
+        expect(chunks.length).toEqual(8);
 
         const stmtKeys = Object.keys(statements);
         expect(stmtKeys.length).toEqual(0);
@@ -63,16 +66,47 @@ describe('Parser V2 test suite.', () => {
 
         const imported = imports[importKeys[0]];
         expect(imported.alias.text).toEqual('my_import');
-        expect(imported.path.text).toEqual("'./my_imported_select'");
+        expect(imported.path.text).toEqual("'./statements/statement'");
 
-        const include = chunks[5];
+        const include = chunks[4];
 
         if (!isIncludeDirectiveV2(include)) {
             console.log(include);
             throw new Error('Expected include directive, received a token.');
         }
 
+        if (typeof include.module === 'string') {
+            throw new Error('Expected token, received string.');
+        }
+
         expect(include.module.text).toEqual('my_import');
         expect(include.import.text).toEqual('select_from_my_table');
     });
+
+    it('Can tokenize and parse a file with a local statement', () => {
+        const {
+            chunks,
+            imports,
+            statements,
+            diagnosticMessages,
+            unknownExceptions
+        } = parseAndTokenize(withLocalModule, virtualDir);
+
+        expect2(diagnosticMessages).toHaveLengthOf(0);
+        expect2(unknownExceptions).toHaveLengthOf(0);
+
+        expect2(statements).toHaveLengthOf(1);
+
+        expect2(imports).toHaveLengthOf(0);
+
+        expect2(chunks).toHaveLengthOf(1);
+    });
 });
+
+function parseAndTokenize(source: string, virtualDir: string) {
+    const { tokens } = tokenize(source, virtualDir, {
+        ignoreWhitespace: true
+    });
+
+    return parse(tokens, mainSasql, virtualMainDir);
+}

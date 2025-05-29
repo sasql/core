@@ -15,7 +15,8 @@ function createLanguageServer(context) {
             module: serverModule,
             transport: node_1.TransportKind.ipc,
             options: { execArgv: ['--nolazy', '--inspect=6009'] }
-        }
+        },
+        options: {}
     };
     const clientOptions = {
         documentSelector: [

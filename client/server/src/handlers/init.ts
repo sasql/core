@@ -47,7 +47,8 @@ export function initialize(params: InitializeParams) {
         capabilities: {
             textDocumentSync: TextDocumentSyncKind.Full,
             completionProvider: {
-                resolveProvider: true
+                resolveProvider: true,
+                triggerCharacters: ['.', '@', '/']
             }
         }
     };

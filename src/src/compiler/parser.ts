@@ -92,10 +92,14 @@ export function parse(
 
     function formatDiagnosticMessage(
         startToken: Token,
-        expected: string,
+        expected: string | string[],
         receivedToken?: Token,
         receivedField: keyof Token = 'text'
     ) {
+        if (Array.isArray(expected)) {
+            expected = expected.map((e) => `"${e}"`).join(' or ');
+        }
+
         let errorMessage = `Expected ${expected}`;
 
         if (receivedToken) {
@@ -109,7 +113,7 @@ export function parse(
             DiagnosticCategory.ERROR,
             source,
             srcPath,
-            startToken
+            receivedToken ?? startToken
         );
     }
 
@@ -146,28 +150,51 @@ export function parse(
     }
 
     function parseIncludeDirective(token: Token): IncludeDirective {
-        const _module = tokens.shift();
-        if (!_module || _module.type !== TokenType.TEXT) {
-            throw formatDiagnosticMessage(token, '@use alias', _module);
+        const moduleOrStmt = tokens.shift();
+        if (!moduleOrStmt || moduleOrStmt.type !== TokenType.TEXT) {
+            throw formatDiagnosticMessage(
+                token,
+                'a module or statement name',
+                moduleOrStmt
+            );
         }
 
-        const sep = tokens.shift();
-        if (!sep || sep.text !== '.') {
-            throw formatDiagnosticMessage(token, '.', sep);
+        const accessorOrTerminator = tokens.shift();
+        if (!accessorOrTerminator) {
+            throw formatDiagnosticMessage(
+                moduleOrStmt,
+                ['.', ';'],
+                accessorOrTerminator
+            );
         }
 
+        // If there is no accessor character, this must be referencing a
+        // statement declared in this file
+        if (accessorOrTerminator.text === ';') {
+            return {
+                module: 'this',
+                import: moduleOrStmt
+            };
+        }
+
+        // Otherwise, this must be referencing a statement declared
+        // in another module
         const _import = tokens.shift();
         if (!_import || _import.type !== TokenType.TEXT) {
-            throw formatDiagnosticMessage(token, '@use import', _import);
+            throw formatDiagnosticMessage(
+                accessorOrTerminator,
+                'a statement name',
+                _import
+            );
         }
 
-        const _close = tokens.shift();
-        if (!_close || _close.text !== ';') {
-            throw formatDiagnosticMessage(token, ';', _close);
+        const terminator = tokens.shift();
+        if (!terminator || terminator.text !== ';') {
+            throw formatDiagnosticMessage(_import, '";"', terminator);
         }
 
         return {
-            module: _module,
+            module: moduleOrStmt,
             import: _import
         };
     }

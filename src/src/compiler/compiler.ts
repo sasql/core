@@ -283,24 +283,30 @@ export function createCompilerProgram(
         private _resolveInclude(include: IncludeDirective): string {
             const { import: imported, module } = include;
 
-            const resolvedImport = this.imports[module.text];
-            if (!resolvedImport) {
-                throw new DiagnosticMessage(
-                    `Failed to resolve module ${module.text}.`,
-                    DiagnosticCategory.ERROR,
-                    this.source ?? '',
-                    this.srcPath,
-                    module
-                );
-            }
+            let resolvedStatement: StatementDirective;
 
-            const resolvedStatement = resolvedImport.statements[imported.text];
+            if (module === 'this') {
+                resolvedStatement = this.statements[imported.text];
+            } else {
+                const resolvedImport = this.imports[module.text];
+                if (!resolvedImport) {
+                    throw new DiagnosticMessage(
+                        `Failed to resolve module ${module.text}.`,
+                        DiagnosticCategory.ERROR,
+                        this.source ?? '',
+                        this.srcPath,
+                        module
+                    );
+                }
+
+                resolvedStatement = resolvedImport.statements[imported.text];
+            }
 
             if (!resolvedStatement) {
                 throw new DiagnosticMessage(
                     'Failed to resolve @include',
                     DiagnosticCategory.ERROR,
-                    this.source ?? '',
+                    this.source,
                     this.srcPath,
                     imported
                 );

@@ -36,16 +36,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
-const statement_completion_provider_1 = require("./providers/statement-completion-provider");
-const suggest_directive_names_1 = require("./providers/suggest-directive-names");
-const path_completion_provider_1 = require("./providers/path-completion-provider");
 const create_language_server_1 = require("./create-language-server");
 let client;
 // Called when extension is activated
 function activate(context) {
-    (0, statement_completion_provider_1.registerStatementCompletionProvider)();
-    (0, suggest_directive_names_1.registerDirectiveCompletionProvider)();
-    (0, path_completion_provider_1.registerPathCompletionProvider)();
+    // registerStatementCompletionProvider();
+    // registerDirectiveCompletionProvider();
+    // registerPathCompletionProvider();
     client = (0, create_language_server_1.createLanguageServer)(context);
     client.start();
     context.subscriptions.push(vscode.commands.registerCommand('sasql.reloadLanguageServer', () => {
