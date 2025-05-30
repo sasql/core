@@ -1,6 +1,7 @@
 import type { Range } from 'vscode-languageserver';
 import { DiagnosticMessage } from './diagnostic-message.js';
 import { SasqlConfig } from './config.js';
+import { TokenPosnMap } from './lookup.js';
 
 export declare interface Position {
     startIndex: number;
@@ -25,12 +26,23 @@ export declare interface Token extends Range, Position {
     text: string;
 }
 
+export function isToken(val: any): val is Token {
+    return (
+        val !== null &&
+        val !== undefined &&
+        'type' in val &&
+        'text' in val &&
+        'start' in val
+    );
+}
+
 export declare interface ParseResult {
     imports: Record<string, UseDirective>;
     statements: Record<string, StatementDirective>;
     chunks: (Token | IncludeDirective)[];
     diagnosticMessages: DiagnosticMessage[];
     unknownExceptions: unknown[];
+    positions: TokenPosnMap;
 }
 
 export declare interface UseDirective {
@@ -38,12 +50,16 @@ export declare interface UseDirective {
     alias: Token;
 }
 
+export function isUseDirective(val: any): val is UseDirective {
+    return val !== null && val !== undefined && 'path' in val && 'alias' in val;
+}
+
 export declare interface IncludeDirective {
-    module: Token | 'this';
+    module?: Token;
     import: Token;
 }
 
-export function isIncludeDirectiveV2(val: any): val is IncludeDirective {
+export function isIncludeDirective(val: any): val is IncludeDirective {
     return (
         val !== null && val !== undefined && 'module' in val && 'import' in val
     );
@@ -53,6 +69,15 @@ export declare interface StatementDirective {
     stmtName: Token;
     bracedExpression: Token[];
     commentBlock?: CommentBlock;
+}
+
+export function isStatementDirective(val: any): val is StatementDirective {
+    return (
+        val !== null &&
+        val !== undefined &&
+        'stmtName' in val &&
+        'import' in val
+    );
 }
 
 export declare interface CommentBlock {
@@ -107,6 +132,9 @@ export declare interface Compiler {
     /** Has this file been compiled? */
     initialized: boolean;
 
+    /* Allows for access to positions for IDE integration. */
+    positions: TokenPosnMap;
+
     /**
      * Compiles this file.
      * @param compileImports `true` if files imported via `@use` should be compiled.
@@ -118,6 +146,7 @@ export declare interface Compiler {
 
 export declare interface CompilerOutput {
     output: string;
+    positions: TokenPosnMap;
     diagnosticMessages: DiagnosticMessage[];
     unknownExceptions: unknown[];
 }

@@ -1,15 +1,15 @@
 import { resolve } from 'path';
-import {
-    createResolver,
-    getUseStmts,
-    matchAllUseStmts,
-    useRegex
-} from '../lib/resolver.js';
 import { mainSasql } from './example-sasql.spec.js';
 import {
     createTestProject,
     removeTestProject
 } from './test-file-creator.spec.js';
+import {
+    getUseStmts,
+    matchAllUseStmts,
+    useRegex
+} from '../lib/resolver/get-use-stmts.js';
+import { createResolver } from '../lib/resolver/resolver.js';
 
 describe('Resolver test suite', () => {
     beforeAll(() => createTestProject());

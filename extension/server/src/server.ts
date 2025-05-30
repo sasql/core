@@ -10,7 +10,8 @@ import { registerDocumentEventHandlers } from './handlers/register-document-even
 import { registerInitEvents } from './handlers/init.js';
 import { resolveSasqlProjectConfig } from './resolve-sasql-project-config.js';
 import { compileSasqlProgram } from './document-handlers/compile-program.js';
-import { registerCompletionEventHandlers } from './examples/register-completion-event-handlers.js';
+import { registerCompletionEventHandlers } from './handlers/register-completion-event-handlers.js';
+import { registerHoverEventHandlers } from './handlers/register-hover-event-handlers.js';
 
 export let compilerProgram: CompilerProgram | null = null;
 
@@ -48,5 +49,6 @@ documents.listen(connection);
 connection.listen();
 
 registerCompletionEventHandlers(connection);
+registerHoverEventHandlers(connection);
 
 compileSasqlProgram();

@@ -9,7 +9,7 @@ import {
 
 export function createLanguageServer(context: ExtensionContext) {
     const serverModule = join(
-        context.asAbsolutePath('server'),
+        context.asAbsolutePath('../server'),
         'dist',
         'server.js'
     );

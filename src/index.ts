@@ -22,8 +22,8 @@ export type {
     CompilerProgram,
     CompilerProgramOptions
 } from './lib/types.js';
-export { isIncludeDirectiveV2 } from './lib/types.js';
-export { type Resolver, createResolver } from './lib/resolver.js';
+export { isIncludeDirective as isIncludeDirectiveV2 } from './lib/types.js';
+export { type Resolver, createResolver } from './lib/resolver/resolver.js';
 export {
     type SasqlConfig,
     findProjectConfig,

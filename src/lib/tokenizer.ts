@@ -15,8 +15,8 @@ export function tokenize(
     const tokens: Token[] = [];
     const diagnosticMessages: DiagnosticMessage[] = [];
 
-    let ln = 1;
-    let col = 1;
+    let ln = 0;
+    let col = 0;
     let start: number;
 
     let ignoreWhitespace = options.ignoreWhitespace ?? true;

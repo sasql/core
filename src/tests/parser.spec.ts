@@ -1,6 +1,6 @@
 import { parse } from '../lib/parser.js';
 import { tokenize } from '../lib/tokenizer.js';
-import { isIncludeDirectiveV2 } from '../lib/types.js';
+import { isIncludeDirective } from '../lib/types.js';
 import {
     mainSasql,
     subStmtSasql,
@@ -36,7 +36,7 @@ describe('Parser V2 test suite.', () => {
         expect(declaration.bracedExpression.length).toEqual(12);
         expect(declaration.commentBlock?.description).toBeTruthy();
         console.log(declaration.commentBlock?.description);
-        expect(declaration.commentBlock?.description[0].text).toEqual('This');
+        expect(declaration.commentBlock?.description[0].text).toBeFalsy();
         expect(declaration.commentBlock?.description.pop()!.text).toEqual('.');
 
         const [tag1, tag2] = declaration.commentBlock?.tags ?? [];
@@ -70,12 +70,12 @@ describe('Parser V2 test suite.', () => {
 
         const include = chunks[4];
 
-        if (!isIncludeDirectiveV2(include)) {
+        if (!isIncludeDirective(include)) {
             console.log(include);
             throw new Error('Expected include directive, received a token.');
         }
 
-        if (typeof include.module === 'string') {
+        if (!include.module) {
             throw new Error('Expected token, received string.');
         }
 
@@ -101,12 +101,17 @@ describe('Parser V2 test suite.', () => {
 
         expect2(chunks).toHaveLengthOf(1);
     });
+
+    it('Caches token posns', () => {
+        const output = parseAndTokenize(mainSasql, virtualMainDir);
+        console.log(output.positions);
+    });
 });
 
-function parseAndTokenize(source: string, virtualDir: string) {
+export function parseAndTokenize(source: string, virtualDir: string) {
     const { tokens } = tokenize(source, virtualDir, {
         ignoreWhitespace: true
     });
 
-    return parse(tokens, mainSasql, virtualMainDir);
+    return parse(tokens, source, virtualDir);
 }

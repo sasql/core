@@ -6,6 +6,7 @@ import {
 import { compilerProgram, type Connection } from '../server.js';
 import { uriToFilePath } from '../document-handlers/compile-program.js';
 import { Compiler } from '@sasql/core';
+import { StatementDirective } from '../../../../dist/lib/types.js';
 
 const includeCompletion = /(@include)\s+([a-z_-]+)\./;
 
@@ -16,8 +17,6 @@ export function registerCompletionEventHandlers(connection: Connection) {
             position,
             textDocument
         }: TextDocumentPositionParams): CompletionItem[] => {
-            console.log('Completion requested');
-
             if (!compilerProgram) {
                 console.error('Compiler program not initialized.');
                 return [];
@@ -31,6 +30,8 @@ export function registerCompletionEventHandlers(connection: Connection) {
                 console.error('Document not found.');
                 return [];
             }
+
+            // console.log(docCompiler.positions);
 
             const ln = docCompiler.source.split(/\n/g)[position.line];
 
@@ -115,36 +116,36 @@ function getCompletionItemsForStmts(compiler: Compiler) {
     return Object.values(compiler.statements).map((stmt): CompletionItem => {
         return {
             label: stmt.stmtName.text,
-            documentation: parseDescription(),
+            documentation: parseDescription(stmt),
             insertText: stmt.stmtName.text + ';',
             kind: CompletionItemKind.Field
         };
-
-        function parseDescription() {
-            if (!stmt.commentBlock) {
-                return undefined;
-            }
-
-            let description = '';
-
-            const words = [...stmt.commentBlock.description];
-
-            while (true) {
-                let nextWord = words.shift()?.text;
-
-                if (!nextWord) {
-                    return description;
-                }
-
-                if (/[.?!,_-]/.test(nextWord)) {
-                    description += nextWord;
-                    continue;
-                }
-
-                description += ' ' + nextWord;
-            }
-        }
     });
+}
+
+export function parseDescription(stmt: StatementDirective) {
+    if (!stmt.commentBlock) {
+        return undefined;
+    }
+
+    let description = '';
+
+    const words = [...stmt.commentBlock.description];
+
+    while (true) {
+        let nextWord = words.shift()?.text;
+
+        if (!nextWord) {
+            return description;
+        }
+
+        if (/[.?!,_-]/.test(nextWord)) {
+            description += nextWord;
+            continue;
+        }
+
+        description += ' ' + nextWord;
+    }
 }
 
 // @ts-ignore

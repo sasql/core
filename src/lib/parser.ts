@@ -1,4 +1,5 @@
 import { DiagnosticCategory, DiagnosticMessage } from './diagnostic-message.js';
+import { TokenPosnMap } from './lookup.js';
 import {
     TokenType,
     Token,
@@ -28,11 +29,7 @@ export function parse(
     const diagnosticMessages: DiagnosticMessage[] = [];
     const unknownExceptions: unknown[] = [];
 
-    const tokenMap: {
-        [line: number]: {
-            [character: number]: Token;
-        };
-    } = {};
+    const tokenMap = new TokenPosnMap();
 
     while (true) {
         let token = tokens.shift();
@@ -42,14 +39,15 @@ export function parse(
                 imports,
                 statements,
                 diagnosticMessages,
-                unknownExceptions
+                unknownExceptions,
+                positions: tokenMap
             };
         }
 
         if (token.type === TokenType.COMMENT_LN) {
             if (removeComments === false) {
                 chunks.push(token);
-                cacheTokenPosn(token);
+                tokenMap.push(token);
             }
             continue;
         }
@@ -69,12 +67,7 @@ export function parse(
         }
 
         chunks.push(token);
-        cacheTokenPosn(token);
-    }
-
-    function cacheTokenPosn(token: Token) {
-        tokenMap[token.start.line - 1] ??= {};
-        tokenMap[token.start.line - 1][token.start.character - 1] = token;
+        tokenMap.push(token);
     }
 
     function parseDirective(token: Token, commentBlock?: any) {
@@ -85,18 +78,22 @@ export function parse(
                 case '@use':
                     const use = parseUseDirective(token);
                     imports[use.alias.text] = use;
+                    tokenMap.push(use);
                     break;
                 case '@include':
                     const include = parseIncludeDirective(token);
                     chunks.push(include);
+                    tokenMap.push(include);
                     break;
                 case '@statement':
                     const stmt = parseStatementDirective(token, commentBlock);
                     statements[stmt.stmtName.text] = stmt;
+                    tokenMap.push(stmt);
                     break;
                 default:
                     // This isn't a directive
                     chunks.push(token);
+                    tokenMap.push(token);
             }
         } catch (e) {
             onError(e);
@@ -184,10 +181,7 @@ export function parse(
         // If there is no accessor character, this must be referencing a
         // statement declared in this file
         if (accessorOrTerminator.text === ';') {
-            return {
-                module: 'this',
-                import: moduleOrStmt
-            };
+            return { import: moduleOrStmt };
         }
 
         // Otherwise, this must be referencing a statement declared
