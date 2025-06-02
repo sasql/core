@@ -23,8 +23,9 @@ export function parse(
 
     let tokens = [..._tokens];
 
-    const imports: Record<string, UseDirective> = {};
-    const statements: Record<string, StatementDirective> = {};
+    const imports = new Map<string, UseDirective>();
+    const statements = new Map<string, StatementDirective>();
+    // @todo - refactor into AST
     const chunks: (Token | IncludeDirective)[] = [];
     const diagnosticMessages: DiagnosticMessage[] = [];
     const unknownExceptions: unknown[] = [];
@@ -77,7 +78,7 @@ export function parse(
             switch (text) {
                 case '@use':
                     const use = parseUseDirective(token);
-                    imports[use.alias.text] = use;
+                    imports.set(use.alias.text, use);
                     tokenMap.push(use);
                     break;
                 case '@include':
@@ -87,7 +88,7 @@ export function parse(
                     break;
                 case '@statement':
                     const stmt = parseStatementDirective(token, commentBlock);
-                    statements[stmt.stmtName.text] = stmt;
+                    statements.set(stmt.stmtName.text, stmt);
                     tokenMap.push(stmt);
                     break;
                 default:

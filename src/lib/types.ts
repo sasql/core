@@ -37,8 +37,8 @@ export function isToken(val: any): val is Token {
 }
 
 export declare interface ParseResult {
-    imports: Record<string, UseDirective>;
-    statements: Record<string, StatementDirective>;
+    imports: Map<string, UseDirective>;
+    statements: Map<string, StatementDirective>;
     chunks: (Token | IncludeDirective)[];
     diagnosticMessages: DiagnosticMessage[];
     unknownExceptions: unknown[];

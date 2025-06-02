@@ -1,13 +1,17 @@
 import { dirname, join } from 'path';
-import { ProjectFileResolverError, SasqlConfig } from './config.js';
-import { DiagnosticMessage } from './diagnostic-message.js';
+import { SasqlConfig } from './config.js';
+import { DiagnosticCategory, DiagnosticMessage } from './diagnostic-message.js';
 import { globSync } from 'glob';
 import { sys } from './sys.js';
+import { tokenize } from './tokenizer.js';
+import { parse } from './parser.js';
+import { StatementDirective, Token, UseDirective } from './types.js';
 
 export const useRegex = /@use '([.\/a-z_-]+)' as ([a-z_-]+);/g;
 
 export class ProjectFile {
     public imports = new Map<string, ProjectFile>();
+    public statements = new Map<string, StatementDirective>();
 
     constructor(
         public source: string,
@@ -19,95 +23,69 @@ export class ProjectFile {
         return this.imports.size > 0;
     }
 
-    public get importPaths() {
-        return Array.from(this.imports.values());
+    public parse() {
+        const tokenized = tokenize(this.source, this.fsPath, {
+            ignoreWhitespace: true
+        });
+
+        this.ctx.diagnosticMessages.push(...tokenized.diagnosticMessages);
+
+        const { diagnosticMessages, imports, statements, unknownExceptions } =
+            parse(tokenized.tokens, this.source, this.fsPath, {
+                removeComments: true
+            });
+
+        this.statements = statements;
+
+        this.ctx.diagnosticMessages.push(...diagnosticMessages);
+        this.ctx.unknownExceptions.push(...unknownExceptions);
+
+        imports.forEach((imported) => {
+            this.resolveImports(imported);
+        });
+
+        return this;
     }
 
-    public resolveImports() {
+    public resolveImports(directive: UseDirective) {
+        const fsPath = this.resolveImportPath(
+            directive.path.text,
+            directive.path
+        );
+
+        if (!fsPath) return;
+
+        if (this.ctx.projectFiles.has(fsPath)) {
+            this.imports.set(
+                directive.alias.text,
+                this.ctx.projectFiles.get(fsPath)!
+            );
+            return;
+        }
+
         try {
-            this._matchUseStmts().forEach((arr) => {
-                const { alias, fsPath } = this._parseUseStmt(arr);
-                if (!alias || !fsPath) return;
-
-                if (this.ctx.projectFiles.has(fsPath)) {
-                    this.imports.set(alias, this.ctx.projectFiles.get(fsPath)!);
-                    return;
-                }
-
-                try {
-                    const { fsPath: _fsPath, source: _source } =
-                        this.ctx.readProjectFile(fsPath);
-                    const projectFile = new ProjectFile(
-                        _source,
-                        _fsPath,
-                        this.ctx
-                    );
-                    this.ctx.projectFiles.set(
-                        _fsPath,
-                        projectFile.resolveImports()
-                    );
-                    this.imports.set(alias, projectFile);
-                } catch (e) {
-                    this.ctx.unknownExceptions.push({
-                        fsPath: this.fsPath,
-                        error: e
-                    });
-                }
-            });
-        } catch (error) {
+            const { fsPath: _fsPath, source: _source } =
+                this.ctx.readProjectFile(fsPath);
+            const projectFile = new ProjectFile(_source, _fsPath, this.ctx);
+            this.ctx.projectFiles.set(_fsPath, projectFile.parse());
+            this.imports.set(directive.alias.text, projectFile);
+        } catch (e) {
             this.ctx.unknownExceptions.push({
                 fsPath: this.fsPath,
-                error
+                error: e
             });
         }
 
         return this;
     }
 
-    private _matchUseStmts() {
-        const matches: RegExpExecArray[] = [];
-
-        const all = this.source.matchAll(useRegex);
-
-        while (true) {
-            let nextMatch = all.next();
-            if (nextMatch.done) {
-                return matches;
-            }
-            matches.push(nextMatch.value);
-        }
-    }
-
-    private _parseUseStmt(matches: RegExpExecArray) {
-        let [stmt, fsPath, alias] = matches;
-
-        if (!stmt) {
-            // this should never hit
-            this.ctx.unknownExceptions.push({
-                error: 'Expected import stmt, received undefined.',
-                fsPath: this.fsPath
-            });
-            return {};
-        }
-
-        if (!fsPath) {
-            this.ctx.unknownExceptions.push({
-                error: 'Expected path, received undefined.',
-                fsPath: this.fsPath
-            });
-            return {};
+    resolveImportPath(fsPath: string, lastToken: Token) {
+        if (fsPath.startsWith("'") || fsPath.startsWith('"')) {
+            fsPath = fsPath.substring(1, fsPath.length - 1);
         }
 
         if (!fsPath.endsWith('.sasql')) {
             fsPath = fsPath + '.sasql';
-        }
-
-        if (!alias) {
-            this.ctx.unknownExceptions.push({
-                error: 'Expected alias, received undefined.',
-                fsPath: this.fsPath
-            });
-            return {};
         }
 
         // If the path specified with @use doesn't exist, assume it's a
@@ -116,23 +94,29 @@ export class ProjectFile {
             let resolvedPath = join(dirname(this.fsPath), fsPath);
             // If we can't resolve the path, push a diagnostic error
             if (!sys.fileExists(resolvedPath)) {
-                this.ctx.unknownExceptions.push({
-                    error: `Failed to resolve import at ` + resolvedPath,
-                    fsPath: this.fsPath
-                });
-                return {};
+                console.log(resolvedPath);
+                this.ctx.diagnosticMessages.push(
+                    new DiagnosticMessage(
+                        'Failed to resolve import at ' + fsPath,
+                        DiagnosticCategory.ERROR,
+                        this.source,
+                        this.fsPath,
+                        lastToken
+                    )
+                );
+                return null;
             }
-            fsPath = resolvedPath;
+            return resolvedPath;
         }
 
-        return { fsPath, alias };
+        return fsPath;
     }
 }
 
 export class Resolver {
     public projectFiles = new Map<string, ProjectFile>();
 
-    public unknownExceptions: ProjectFileResolverError[] = [];
+    public unknownExceptions: unknown[] = [];
     public diagnosticMessages: DiagnosticMessage[] = [];
 
     constructor(
@@ -171,7 +155,7 @@ export class Resolver {
         projectFiles.forEach(({ fsPath, source }) => {
             this.projectFiles.set(
                 fsPath,
-                new ProjectFile(source, fsPath, this).resolveImports()
+                new ProjectFile(source, fsPath, this).parse()
             );
         });
     }
