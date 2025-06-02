@@ -5,10 +5,7 @@ import {
     resolveProjectFiles
 } from '../lib/config.js';
 import { sys } from '../lib/sys.js';
-import {
-    createTestProject,
-    removeTestProject
-} from './test-file-creator.spec.js';
+import { createTestProject, removeTestProject } from './_test-files.js';
 
 describe('Config test suite', () => {
     beforeAll(() => createTestProject());
@@ -36,9 +33,9 @@ describe('Config test suite', () => {
             resolve('.test'),
             readProjectConfig(configPath)
         );
-        expect(paths.length).toEqual(2);
-        paths.forEach((p) => {
-            expect(sys.fileExists(p.srcPath)).toEqual(true);
+        expect(paths.projectFiles.length).toEqual(2);
+        paths.projectFiles.forEach((p) => {
+            expect(sys.fileExists(p.fsPath)).toEqual(true);
         });
     });
 });

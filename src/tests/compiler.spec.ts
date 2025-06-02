@@ -2,10 +2,12 @@ import { createCompilerProgram } from '../lib/compiler.js';
 import {
     createTestProject,
     removeTestProject,
-    rootDir
-} from './test-file-creator.spec.js';
+    testTmp
+} from './_test-files.js';
 
 describe('Compiler errors test suite', () => {
+    const rootDir = testTmp.fsPath;
+
     beforeAll(() => createTestProject(true));
     afterAll(() => removeTestProject());
 
@@ -26,6 +28,8 @@ describe('Compiler errors test suite', () => {
 });
 
 describe('Compiler V3 test suite', () => {
+    const rootDir = testTmp.fsPath;
+
     beforeAll(() => createTestProject());
     afterAll(() => removeTestProject());
 

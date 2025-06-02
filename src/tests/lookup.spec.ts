@@ -1,10 +1,12 @@
 import { isToken, isUseDirective } from '../lib/types.js';
-import { mainSasql, virtualMainDir } from './example-sasql.spec.js';
+import { testTmp } from './_test-files.js';
 import { parseAndTokenize } from './parser.spec.js';
 
 describe('Lookup test suite', () => {
     test('it can find tokens given a position', () => {
-        const { positions } = parseAndTokenize(mainSasql, virtualMainDir);
+        const { fsPath: mainPath, source: mainSasql } = testTmp.src.main_sasql;
+
+        const { positions } = parseAndTokenize(mainSasql, mainPath);
 
         const select = positions.getAtPosn(3, 3);
         if (!isToken(select)) {

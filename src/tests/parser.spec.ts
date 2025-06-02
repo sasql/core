@@ -1,21 +1,19 @@
 import { parse } from '../lib/parser.js';
 import { tokenize } from '../lib/tokenizer.js';
 import { isIncludeDirective } from '../lib/types.js';
-import {
-    mainSasql,
-    subStmtSasql,
-    virtualDir,
-    virtualMainDir,
-    withLocalModule
-} from './example-sasql.spec.js';
+import { testTmp, withLocalStmt } from './_test-files.js';
 import { expect2 } from './util.spec.js';
 
 describe('Parser V2 test suite.', () => {
+    const { fsPath: mainPath, source: mainSasql } = testTmp.src.main_sasql;
+    const { fsPath: stmtsPath, source: statementSasql } =
+        testTmp.src.statements.stmt_sasql;
+
     test('Can parse sasql with statement declaration', () => {
-        const { tokens } = tokenize(subStmtSasql, virtualDir, {
+        const { tokens } = tokenize(statementSasql, stmtsPath, {
             ignoreWhitespace: true
         });
-        const parsed = parse(tokens, subStmtSasql, virtualDir);
+        const parsed = parse(tokens, statementSasql, stmtsPath);
 
         expect(parsed.chunks.length).toEqual(0);
 
@@ -36,7 +34,7 @@ describe('Parser V2 test suite.', () => {
         expect(declaration.bracedExpression.length).toEqual(12);
         expect(declaration.commentBlock?.description).toBeTruthy();
         console.log(declaration.commentBlock?.description);
-        expect(declaration.commentBlock?.description[0].text).toBeFalsy();
+        expect(declaration.commentBlock?.description[0].text).toBeTruthy();
         expect(declaration.commentBlock?.description.pop()!.text).toEqual('.');
 
         const [tag1, tag2] = declaration.commentBlock?.tags ?? [];
@@ -46,14 +44,14 @@ describe('Parser V2 test suite.', () => {
     });
 
     test('Can parse sasql with @use and @include directives', () => {
-        const { tokens } = tokenize(mainSasql, virtualMainDir, {
+        const { tokens } = tokenize(mainSasql, mainPath, {
             ignoreWhitespace: true
         });
 
         const { chunks, imports, statements } = parse(
             tokens,
             mainSasql,
-            virtualMainDir
+            mainPath
         );
 
         expect(chunks.length).toEqual(8);
@@ -90,7 +88,7 @@ describe('Parser V2 test suite.', () => {
             statements,
             diagnosticMessages,
             unknownExceptions
-        } = parseAndTokenize(withLocalModule, virtualDir);
+        } = parseAndTokenize(withLocalStmt, mainPath);
 
         expect2(diagnosticMessages).toHaveLengthOf(0);
         expect2(unknownExceptions).toHaveLengthOf(0);
@@ -103,7 +101,7 @@ describe('Parser V2 test suite.', () => {
     });
 
     it('Caches token posns', () => {
-        const output = parseAndTokenize(mainSasql, virtualMainDir);
+        const output = parseAndTokenize(mainSasql, mainPath);
         console.log(output.positions);
     });
 });

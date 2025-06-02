@@ -377,10 +377,10 @@ export function createCompilerProgram(
 
     const projectFiles = resolveProjectFiles(projectRootDir, projectConfig);
 
-    projectFiles.forEach(({ source, srcPath }) => {
+    projectFiles.projectFiles.forEach(({ source, fsPath }) => {
         if (!source) return;
-        const compiler = new _Compiler(srcPath, source);
-        compilers.set(srcPath, compiler);
+        const compiler = new _Compiler(fsPath, source);
+        compilers.set(fsPath, compiler);
     });
 
     function compileProject() {

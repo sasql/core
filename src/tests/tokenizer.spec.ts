@@ -1,15 +1,15 @@
 import { tokenize } from '../lib/tokenizer.js';
-import {
-    mainSasql,
-    subStmtSasql,
-    virtualMainDir
-} from './example-sasql.spec.js';
+import { TestFile, testTmp } from './_test-files.js';
 
 describe('Tokenizer v2 test suite', () => {
     test('Can tokenize sasql that has an import and include.', () => {
-        const tokenized = tokenize(mainSasql, virtualMainDir, {
-            ignoreWhitespace: true
-        });
+        const tokenized = tokenize(
+            testTmp.src.main_sasql.source,
+            testTmp.src.main_sasql.fsPath,
+            {
+                ignoreWhitespace: true
+            }
+        );
 
         const expectedTokenVals = [
             '@use',
@@ -37,9 +37,13 @@ describe('Tokenizer v2 test suite', () => {
     });
 
     test('Can tokenize sql that defines a stmt', () => {
-        const tokenized = tokenize(subStmtSasql, virtualMainDir, {
-            ignoreWhitespace: true
-        });
+        const tokenized = tokenize(
+            testTmp.src.statements.stmt_sasql.source,
+            testTmp.src.statements.stmt_sasql.fsPath,
+            {
+                ignoreWhitespace: true
+            }
+        );
 
         const expectedTokenVals = [
             '/**',
@@ -100,19 +104,19 @@ describe('Tokenizer v2 test suite', () => {
     });
 
     test('Records the correct token positions', () => {
-        testTokenPosns(mainSasql);
-        testTokenPosns(subStmtSasql);
+        testTokenPosns(testTmp.src.main_sasql);
+        testTokenPosns(testTmp.src.statements.stmt_sasql);
     });
 
-    function testTokenPosns(sasql: string) {
-        const tokenized = tokenize(sasql, virtualMainDir, {
+    function testTokenPosns({ fsPath, source }: TestFile) {
+        const tokenized = tokenize(source, fsPath, {
             ignoreWhitespace: true
         });
 
-        const lns = sasql.split(/\n/g);
+        const lns = source.split(/\n/g);
 
         tokenized.tokens.forEach((t) => {
-            expect(sasql.substring(t.startIndex, t.endIndex)).toEqual(t.text);
+            expect(source.substring(t.startIndex, t.endIndex)).toEqual(t.text);
 
             const ln = lns[t.start.line - 1];
             const text = ln.substring(

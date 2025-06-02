@@ -39,25 +39,56 @@ export function readProjectConfig(projectConfigPath: string): SasqlConfig {
     return JSON.parse(config);
 }
 
+export declare interface ProjectFileResolver {
+    projectFiles: ProjectFile[];
+    errors: ProjectFileResolverError[];
+}
+
+export declare interface ProjectFile {
+    fsPath: string;
+    source: string;
+}
+
+export declare interface ProjectFileResolverError {
+    fsPath?: string;
+    error: unknown;
+}
+
 export function resolveProjectFiles(
     projectRoot: string,
     projectConfig: SasqlConfig
-) {
-    return projectConfig.include
+): ProjectFileResolver {
+    const errors: ProjectFileResolverError[] = [];
+
+    const projectFiles = projectConfig.include
         .map((includeStr) => join(projectRoot, includeStr))
         .flatMap((f) => {
             try {
-                return globSync(f).map((path) => {
-                    const source = sys.readFile(path);
-
-                    return {
-                        srcPath: path,
-                        source
-                    };
+                return globSync(f).flatMap((fsPath) => {
+                    try {
+                        return readProjectFile(fsPath);
+                    } catch (error) {
+                        errors.push({ fsPath, error });
+                        return [];
+                    }
                 });
-            } catch {
+            } catch (error) {
                 // @todo - Diagnostic message
+                errors.push({ error });
                 return [];
             }
         });
+
+    return {
+        projectFiles,
+        errors
+    };
+}
+
+export function readProjectFile(fsPath: string) {
+    const source = sys.readFile(fsPath);
+    if (!source) {
+        throw new Error('Failed to read project file.');
+    }
+    return { fsPath, source };
 }
